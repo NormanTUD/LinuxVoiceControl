@@ -223,9 +223,9 @@ def main(ARGS):
             text = stream_context.finishStream()
 
             text = " ".join(text.split())
-            if text == 'welches fenster ist im vordergrund' or text == 'welches fenster ist im fokus':
+            if text == 'welches fenster ist im vordergrund' or ("fenster" in text and "fokus" in text):
                 talk(hole_aktuelles_fenster())
-            elif text == 'wechsel fenster' or text == 'fenster wechseln' or text == 'elster wechseln':
+            elif text == 'wechsel fenster' or text == 'fenster wechseln' or text == 'elster wechseln' or text == 'fenster wechsel':
                 pyautogui.hotkey('alt', 'tab')
                 time.sleep(1)
                 talk(hole_aktuelles_fenster())
@@ -237,55 +237,65 @@ def main(ARGS):
                 pyautogui.hotkey('ctrl', 'shift', 'tab')
                 time.sleep(1)
                 talk(hole_aktuelles_fenster())
-            elif text == 'lautlos':
-                pyautogui.hotkey('volumemute')
+            elif text == 'schließe tab' or text == 'schließe tap':
+                pyautogui.hotkey('ctrl', 'w')
+            elif text == 'neuer tab' or text == 'neuer tap':
+                pyautogui.hotkey('ctrl', 't')
+            elif text == 'lautlos' or text == 'wieder laut':
+                os.system("amixer set Master toggle")
             elif text == 'lauter':
                 pyautogui.hotkey('volumeup')
             elif text == 'leiser':
                 pyautogui.hotkey('volumedown')
             elif text == 'abspielen':
                 pyautogui.hotkey('space')
+            elif text == 'alles markieren':
+                pyautogui.hotkey('ctrl', 'a')
+            elif text == 'eingabetaste' or text == 'eingabe taster' or text == 'ein abtaster' or text == 'eingabe taste':
+                pyautogui.hotkey('enter')
+            elif text == 'alles löschen':
+                pyautogui.hotkey('ctrl', 'a')
+                pyautogui.hotkey('del')
+            elif text == 'rückgängig':
+                pyautogui.hotkey('ctrl', 'z')
+            elif text == 'wiederholen':
+                pyautogui.hotkey('ctrl', 'y')
+            elif text == 'kopieren':
+                pyautogui.hotkey('ctrl', 'c')
+            elif text == 'einfügen':
+                pyautogui.hotkey('ctrl', 'v')
+            elif text == 'ausschneiden':
+                pyautogui.hotkey('ctrl', 'x')
+            elif text == 'letztes wort löschen':
+                pyautogui.hotkey('ctrl', 'backspace')
+
             elif starte_schreiben:
                 if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben':
                     print("Es wird nicht mehr mitgeschrieben")
                     starte_schreiben = False
-
                 elif text:
-                    if text == 'alles markieren':
-                        pyautogui.hotkey('ctrl', 'a')
-                    elif text == 'alles löschen':
-                        pyautogui.hotkey('ctrl', 'a')
-                        pyautogui.hotkey('del')
-                    elif text == 'rückgängig':
-                        pyautogui.hotkey('ctrl', 'z')
-                    elif text == 'wiederholen':
-                        pyautogui.hotkey('ctrl', 'y')
-                    elif text == 'kopieren':
-                        pyautogui.hotkey('ctrl', 'c')
-                    elif text == 'einfügen':
-                        pyautogui.hotkey('ctrl', 'v')
-                    elif text == 'ausschneiden':
-                        pyautogui.hotkey('ctrl', 'x')
-                    elif text == 'letztes wort löschen':
-                        pyautogui.hotkey('ctrl', 'backspace')
+                    if text == "neue zeile":
+                        text  = "\n"
+                    elif text == "leerzeichen":
+                        text  = " "
                     else:
-                        if text == "neue zeile":
-                            text  = "\n"
-                        elif text == "leerzeichen":
-                            text  = " "
-                        else:
-                            text = text + " "
+                        text = text + " "
 
-                        text = text.replace("komma", ",")
-                        text = text.replace("ausrufezeichen", "!")
-                        text = text.replace("punkt", ".")
-                        text = text.replace(" ,", ",")
-                        text = text.replace(" !", "!")
-                        text = text.replace(" .", ".")
+                    text = text.replace("komma", ",")
+                    text = text.replace("ausrufezeichen", "!")
+                    text = text.replace("punkt", ".")
+                    text = text.replace("neue zeile", "\n")
+                    text = text.replace("leerzeichen", " ")
+                    text = text.replace(" ,", ",")
+                    text = text.replace(" !", "!")
+                    text = text.replace(" .", ".")
+                    text = text.replace("  ", " ")
+                    text = text.replace("\n ", "\n")
+                    text = text.replace(" \n", "\n")
 
-                        print("Recognized: >>>%s<<<" % text)
-                        #pyautogui.typewrite(text, interval=0.01)
-                        type_unicode(text)
+                    print("Recognized: >>>%s<<<" % text)
+                    #pyautogui.typewrite(text, interval=0.01)
+                    type_unicode(text)
             else:
                 if text == "mitschreiben" or text == "mit schreiben":
                     starte_schreiben = True
