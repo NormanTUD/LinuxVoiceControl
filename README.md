@@ -3,6 +3,10 @@
 This is a script that allows some parts of the computer to be voice controlled. It is based on the `mic_wav_streaming.py`
 of the DeepSpeech-examples, but expands some small features. Right now, only german inputs are supported.
 
+## Warning
+
+When cloning, you need git lfs or you won't get the full repo!
+
 ## Was kann man sagen?
 
 - 'mitschreiben' (Tippt alles, was gesagt wird, über eine virtuelle Tastatur in das aktive Fenster)
