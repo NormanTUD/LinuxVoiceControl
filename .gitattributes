@@ -1,0 +1,1 @@
+de_kenlm.scorer filter=lfs diff=lfs merge=lfs -text
