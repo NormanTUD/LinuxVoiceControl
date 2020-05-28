@@ -306,8 +306,9 @@ def main(ARGS):
                     pyautogui.hotkey('ctrl', 'backspace')
 
                 elif starte_schreiben:
-                    if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben':
+                    if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
                         print("Es wird nicht mehr mitgeschrieben")
+                        os.system("play line_end.wav")
                         starte_schreiben = False
                     elif text:
                         if text == "neue zeile":
@@ -335,6 +336,7 @@ def main(ARGS):
                     if text == "mitschreiben" or text == "mit schreiben":
                         starte_schreiben = True
                         print("Starte schreiben")
+                        os.system("play bleep.wav")
                     else:
                         print("Sage 'mitschreiben', damit mitgeschrieben wird")
 
