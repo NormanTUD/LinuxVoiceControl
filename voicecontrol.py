@@ -15,6 +15,29 @@ import pyautogui
 import pyperclip
 from subprocess import check_output
 import time
+from urllib.request import urlopen
+
+def get_humidity_tomorrow (place):
+    url = 'https://wttr.in/' + str(place) + '?format="%h"&lang=de'
+    output = urlopen(url).read()
+    this_str = output.decode('utf-8')
+    this_str = this_str.replace('"', '')
+    this_str = this_str.replace("\n", '')
+    return this_str
+
+def get_temperature_tomorrow (place):
+    url = 'https://wttr.in/' + str(place) + '?format="%C"&lang=de'
+    output = urlopen(url).read()
+    this_str = output.decode('utf-8')
+    this_str = this_str.replace('"', '')
+    this_str = this_str.replace("\n", '')
+    return this_str
+
+#print(get_temperature_tomorrow("Dresden"))
+#print(get_humidity_tomorrow("Dresden"))
+#sys.exit(1)
+
+#print(get_temperature_tomorrow())
 
 def type_unicode(word):
     pyperclip.copy(word)
@@ -250,8 +273,14 @@ def main(ARGS):
                     pyautogui.hotkey('volumeup')
                 elif text == 'leiser':
                     pyautogui.hotkey('volumedown')
-                elif text == 'abspielen':
+                elif text == 'abspielen' or text == 'spiel ab':
                     pyautogui.hotkey('space')
+                elif text == 'wie wird das wetter morgen' or ("wetter" in text and "morgen" in text):
+                    warmmorgen = get_temperature_tomorrow("Dresden")
+                    luftfeuchtemorgen = get_humidity_tomorrow("Dresden")
+                    talk("Morgen wird es " + str(warmmorgen) + " mit " + str(luftfeuchtemorgen) + " lufteuchtigkeit")
+                elif text == 'starte internet' or text == 'state internet':
+                    os.system("firefox")
                 elif text == 'alles markieren':
                     pyautogui.hotkey('ctrl', 'a')
                 elif text == 'eingabetaste' or text == 'eingabe taster' or text == 'ein abtaster' or text == 'eingabe taste':
