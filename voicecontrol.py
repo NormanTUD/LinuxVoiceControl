@@ -16,9 +16,11 @@ import pyperclip
 from subprocess import check_output
 import time
 from urllib.request import urlopen
+import random
 
 def get_humidity_tomorrow (place):
     url = 'https://wttr.in/' + str(place) + '?format="%h"&lang=de'
+    red_text(url)
     output = urlopen(url).read()
     this_str = output.decode('utf-8')
     this_str = this_str.replace('"', '')
@@ -27,17 +29,12 @@ def get_humidity_tomorrow (place):
 
 def get_temperature_tomorrow (place):
     url = 'https://wttr.in/' + str(place) + '?format="%C"&lang=de'
+    red_text(url)
     output = urlopen(url).read()
     this_str = output.decode('utf-8')
     this_str = this_str.replace('"', '')
     this_str = this_str.replace("\n", '')
     return this_str
-
-#print(get_temperature_tomorrow("Dresden"))
-#print(get_humidity_tomorrow("Dresden"))
-#sys.exit(1)
-
-#print(get_temperature_tomorrow())
 
 def type_unicode(word):
     pyperclip.copy(word)
@@ -48,7 +45,8 @@ def red_text(string):
 
 def talk(something):
     red_text(str(something))
-    os.system("espeak -a 1000 -v german '" + str(something) + "' 2> /dev/null")
+    #os.system("espeak -a 1000 -v german '" + str(something) + "' 2> /dev/null")
+    os.system('pico2wave --lang de-DE --wave /tmp/Test.wav "' + str(something) + '" ; play /tmp/Test.wav; rm /tmp/Test.wav')
 
 def hole_aktuelles_fenster ():
     out = check_output(["xdotool", "getwindowfocus", "getwindowname"])
@@ -233,95 +231,133 @@ def main(ARGS):
     starte_schreiben = False
     for frame in frames:
         if frame is not None:
-            if spinner: spinner.start()
+            if spinner:
+                spinner.start()
             logging.debug("streaming frame")
             stream_context.feedAudioContent(np.frombuffer(frame, np.int16))
             if ARGS.savewav: wav_data.extend(frame)
         else:
-            if spinner: spinner.stop()
+            if spinner:
+                spinner.stop()
             logging.debug("end utterence")
             if ARGS.savewav:
                 vad_audio.write_wav(os.path.join(ARGS.savewav, datetime.now().strftime("savewav_%Y-%m-%d_%H-%M-%S_%f.wav")), wav_data)
                 wav_data = bytearray()
             text = stream_context.finishStream()
 
-
             text = " ".join(text.split())
+            done_something = False
             if not text == "":
-                print("Recognized: >>>%s<<<" % text)
+                red_text("Recognized: >>>%s<<<" % text)
                 if text == 'welches fenster ist im vordergrund' or ("fenster" in text and "fokus" in text):
                     talk(hole_aktuelles_fenster())
+                    done_something = True
                 elif text == 'wechsel fenster' or text == 'fenster wechseln' or text == 'elster wechseln' or text == 'fenster wechsel' or text == 'ester wechseln':
                     pyautogui.hotkey('alt', 'tab')
                     time.sleep(1)
                     talk(hole_aktuelles_fenster())
+                    done_something = True
                 elif text == 'nächster tab' or text == 'nächster ta'  or text == 'nächster tap':
                     pyautogui.hotkey('ctrl', 'tab')
                     time.sleep(1)
                     talk(hole_aktuelles_fenster())
+                    done_something = True
                 elif text == 'letzter tab' or text == 'letzter ta'  or text == 'letzter tap':
                     pyautogui.hotkey('ctrl', 'shift', 'tab')
                     time.sleep(1)
                     talk(hole_aktuelles_fenster())
+                    done_something = True
                 elif text == 'schließe tab' or text == 'schließe tap':
                     pyautogui.hotkey('ctrl', 'w')
+                    done_something = True
                 elif text == 'neuer tab' or text == 'neuer tap':
                     pyautogui.hotkey('ctrl', 't')
+                    done_something = True
                 elif text == 'lautlos' or text == 'wieder laut':
                     os.system("amixer set Master toggle")
+                    done_something = True
                 elif text == 'lauter':
                     pyautogui.hotkey('volumeup')
+                    done_something = True
                 elif text == 'leiser':
                     pyautogui.hotkey('volumedown')
+                    done_something = True
                 elif text == 'abspielen' or text == 'spiel ab':
                     pyautogui.hotkey('space')
+                    done_something = True
                 elif text == 'wie wird das wetter morgen' or ("wetter" in text and "morgen" in text):
                     warmmorgen = get_temperature_tomorrow("Dresden")
                     luftfeuchtemorgen = get_humidity_tomorrow("Dresden")
                     talk("Morgen wird es " + str(warmmorgen) + " mit " + str(luftfeuchtemorgen) + " lufteuchtigkeit")
+                    done_something = True
                 elif text == 'starte internet' or text == 'state internet':
                     os.system("firefox")
+                    done_something = True
                 elif text == 'alles markieren':
                     pyautogui.hotkey('ctrl', 'a')
+                    done_something = True
                 elif text == 'eingabetaste' or text == 'eingabe taster' or text == 'ein abtaster' or text == 'eingabe taste':
                     pyautogui.hotkey('enter')
+                    done_something = True
                 elif text == 'alles löschen':
                     pyautogui.hotkey('ctrl', 'a')
                     pyautogui.hotkey('del')
-                elif text == 'rückgängig':
+                    done_something = True
+                elif text == 'löschen':
+                    pyautogui.hotkey('del')
+                    done_something = True
+                elif 'rückgängig' in text and 'letzte' in text and 'aktion' in text:
                     pyautogui.hotkey('ctrl', 'z')
+                    done_something = True
                 elif text == 'wiederholen':
                     pyautogui.hotkey('ctrl', 'y')
+                    done_something = True
                 elif text == 'kopieren':
                     pyautogui.hotkey('ctrl', 'c')
+                    done_something = True
                 elif text == 'einfügen':
                     pyautogui.hotkey('ctrl', 'v')
+                    done_something = True
+                elif 'ein' in text and 'witz' in text:
+                    array = [
+                            "Was ist weiß und steht hinter einem Baum Eine scheue Milch",
+                            "Gott sprach: Es werde Licht! Tschack Norris antwortete! Sag bitte!",
+                            "Kommt ein Wektor zur Drogenberatung: Hilfe, ich bin line ar abhängig.",
+                            "Was macht ein Mathematiker im Garten? Wurzeln ziehen.",
+                            "Mathematiker sterben nie! sie verlieren nur einige ihrer Funktionen.",
+                            "Wie viele Informatiker braucht man, um eine Glühbirne zu wechseln? Keinen, das ist ein Hardwärproblem!",
+                            "Linux wird nie das meistinstallierte Betriebssystem sein, wenn man bedenkt, wie oft man Windows neu installieren muss!",
+                            "Wie viele Glühbirnen braucht man, um eine Glühbirne zu wechseln? Genau zwei, die Alte und die Neue.",
+                            "5 von 4 Leuten haben Probleme mit Mathematik!"
+                    ]
+
+                    talk(random.choice(array))
                 elif text == 'alles vorlesen':
                     pyautogui.hotkey('ctrl', 'a')
                     pyautogui.hotkey('ctrl', 'c')
                     os.system('xsel --clipboard | tr "\n" " " | espeak -a 1000 -v german')
+                    done_something = True
                 elif text == 'ausschneiden':
                     pyautogui.hotkey('ctrl', 'x')
+                    done_something = True
                 elif text == 'letztes wort löschen' or text == 'letztes wort laschen' or text == 'letztes wort lerchen':
                     pyautogui.hotkey('ctrl', 'backspace')
-
+                    done_something = True
                 elif starte_schreiben:
                     if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
                         print("Es wird nicht mehr mitgeschrieben")
                         os.system("play line_end.wav")
                         starte_schreiben = False
+                        done_something = True
                     elif text:
-                        if text == "neue zeile":
-                            text  = "\n"
-                        elif text == "leerzeichen":
-                            text  = " "
-                        else:
-                            text = text + " "
+                        text = text + " "
+                        done_something = True
 
                         text = text.replace("komma", ",")
                         text = text.replace("ausrufezeichen", "!")
                         text = text.replace("punkt", ".")
                         text = text.replace("neue zeile", "\n")
+                        text = text.replace("neu zeile", "\n")
                         text = text.replace("leerzeichen", " ")
                         text = text.replace(" ,", ",")
                         text = text.replace(" !", "!")
@@ -337,8 +373,12 @@ def main(ARGS):
                         starte_schreiben = True
                         print("Starte schreiben")
                         os.system("play bleep.wav")
+                        done_something = True
                     else:
                         print("Sage 'mitschreiben', damit mitgeschrieben wird")
+
+            if not done_something and not text == "":
+                os.system("play stamp.wav")
 
             stream_context = model.createStream()
 
