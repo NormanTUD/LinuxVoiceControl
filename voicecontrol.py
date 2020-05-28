@@ -296,9 +296,13 @@ def main(ARGS):
                     pyautogui.hotkey('ctrl', 'c')
                 elif text == 'einfügen':
                     pyautogui.hotkey('ctrl', 'v')
+                elif text == 'alles vorlesen':
+                    pyautogui.hotkey('ctrl', 'a')
+                    pyautogui.hotkey('ctrl', 'c')
+                    os.system('xsel --clipboard | tr "\n" " " | espeak -a 1000 -v german')
                 elif text == 'ausschneiden':
                     pyautogui.hotkey('ctrl', 'x')
-                elif text == 'letztes wort löschen':
+                elif text == 'letztes wort löschen' or text == 'letztes wort laschen' or text == 'letztes wort lerchen':
                     pyautogui.hotkey('ctrl', 'backspace')
 
                 elif starte_schreiben:
