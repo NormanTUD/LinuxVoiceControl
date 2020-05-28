@@ -222,11 +222,13 @@ def main(ARGS):
                 wav_data = bytearray()
             text = stream_context.finishStream()
 
+
             text = " ".join(text.split())
             if not text == "":
+                print("Recognized: >>>%s<<<" % text)
                 if text == 'welches fenster ist im vordergrund' or ("fenster" in text and "fokus" in text):
                     talk(hole_aktuelles_fenster())
-                elif text == 'wechsel fenster' or text == 'fenster wechseln' or text == 'elster wechseln' or text == 'fenster wechsel':
+                elif text == 'wechsel fenster' or text == 'fenster wechseln' or text == 'elster wechseln' or text == 'fenster wechsel' or text == 'ester wechseln':
                     pyautogui.hotkey('alt', 'tab')
                     time.sleep(1)
                     talk(hole_aktuelles_fenster())
@@ -294,7 +296,6 @@ def main(ARGS):
                         text = text.replace("\n ", "\n")
                         text = text.replace(" \n", "\n")
 
-                        print("Recognized: >>>%s<<<" % text)
                         #pyautogui.typewrite(text, interval=0.01)
                         type_unicode(text)
                 else:
@@ -302,7 +303,6 @@ def main(ARGS):
                         starte_schreiben = True
                         print("Starte schreiben")
                     else:
-                        print("Recognized: >>>%s<<<" % text)
                         print("Sage 'mitschreiben', damit mitgeschrieben wird")
 
             stream_context = model.createStream()
