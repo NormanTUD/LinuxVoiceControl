@@ -335,7 +335,7 @@ def main(ARGS):
                 elif text == 'alles vorlesen':
                     pyautogui.hotkey('ctrl', 'a')
                     pyautogui.hotkey('ctrl', 'c')
-                    os.system('xsel --clipboard | tr "\n" " " | espeak -a 1000 -v german')
+                    os.system('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
                     done_something = True
                 elif text == 'ausschneiden':
                     pyautogui.hotkey('ctrl', 'x')
