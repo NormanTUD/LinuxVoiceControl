@@ -17,6 +17,7 @@ from subprocess import check_output
 import time
 from urllib.request import urlopen
 import random
+import wmctrl
 
 def get_humidity_tomorrow (place):
     url = 'https://wttr.in/' + str(place) + '?format="%h"&lang=de'
@@ -283,6 +284,13 @@ def main(ARGS):
                     time.sleep(1)
                     talk(hole_aktuelles_fenster(), vad_audio)
                     done_something = True
+                elif "alle fenster" in text:
+                    Window = wmctrl.Window
+
+                    x = Window.list()
+
+                    for wn in Window.list():
+                        talk(wn.wm_name, vad_audio)
                 elif text == 'schließe tab' or text == 'schließe tap':
                     pyautogui.hotkey('ctrl', 'w')
                     done_something = True
