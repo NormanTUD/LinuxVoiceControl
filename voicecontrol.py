@@ -19,6 +19,11 @@ from urllib.request import urlopen
 import random
 import wmctrl
 
+def play_sound (path, vad_audio):
+    vad_audio.stream.stop_stream()
+    os.system("play " + path)
+    vad_audio.stream.start_stream()
+
 def get_humidity_tomorrow (place):
     url = 'https://wttr.in/' + str(place) + '?format="%h"&lang=de'
     red_text(url)
@@ -355,7 +360,7 @@ def main(ARGS):
                     done_something = True
                 elif 'ein' in text and 'witz' in text:
                     array = [
-                            "Was ist weiß und steht hinter einem Baum Eine scheue Milch",
+                            "Was ist weiß und steht hinter einem Baum? Eine scheue Milch",
                             "Gott sprach: Es werde Licht! Tschack Norris antwortete! Sag bitte!",
                             "Kommt ein Wektor zur Drogenberatung: Hilfe, ich bin line ar abhängig.",
                             "Was macht ein Mathematiker im Garten? Wurzeln ziehen.",
@@ -385,7 +390,7 @@ def main(ARGS):
                 elif starte_schreiben:
                     if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
                         print("Es wird nicht mehr mitgeschrieben")
-                        os.system("play line_end.wav")
+                        play_sound("line_end.wav", vad_audio)
                         starte_schreiben = False
                         done_something = True
                     elif text:
@@ -399,6 +404,12 @@ def main(ARGS):
                         text = text.replace("neuer zeile", "\n")
                         text = text.replace("neu zeile", "\n")
                         text = text.replace("leerzeichen", " ")
+                        text = text.replace("geschweifte klammer auf", "{")
+                        text = text.replace("geschweifte klammer zu", "}")
+                        text = text.replace("eckige klammer auf", "[")
+                        text = text.replace("eckige klammer zu", "]")
+                        text = text.replace("klammer auf", "(")
+                        text = text.replace("klammer zu", ")")
                         text = text.replace(" ,", ",")
                         text = text.replace(" !", "!")
                         text = text.replace(" .", ".")
@@ -412,13 +423,13 @@ def main(ARGS):
                     if text == "mitschreiben" or text == "mit schreiben":
                         starte_schreiben = True
                         print("Starte schreiben")
-                        os.system("play bleep.wav")
+                        play_sound("bleep.wav", vad_audio)
                         done_something = True
                     else:
                         print("Sage 'mitschreiben', damit mitgeschrieben wird")
 
-            if not done_something and not text == "":
-                os.system("play stamp.wav")
+            #if not done_something and not text == "":
+            #    play_sound("stamp.wav", vad_audio)
 
             stream_context = model.createStream()
 
