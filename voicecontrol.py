@@ -359,7 +359,10 @@ def main(ARGS):
                 elif text == 'alles vorlesen':
                     pyautogui.hotkey('ctrl', 'a')
                     pyautogui.hotkey('ctrl', 'c')
+
+                    vad_audio.stream.stop_stream()
                     os.system('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
+                    vad_audio.stream.start_stream()
                     done_something = True
                 elif text == 'ausschneiden':
                     pyautogui.hotkey('ctrl', 'x')
