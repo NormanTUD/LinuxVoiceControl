@@ -303,6 +303,9 @@ def main(ARGS):
                     pyautogui.hotkey('ctrl', 'a')
                     pyautogui.hotkey('del')
                     done_something = True
+                elif 'radio eins' in text:
+                    talk("Ich spiele Radio eins ab")
+                    os.system("vlc https://www.radioeins.de/live.m3u")
                 elif text == 'löschen':
                     pyautogui.hotkey('del')
                     done_something = True
@@ -357,6 +360,7 @@ def main(ARGS):
                         text = text.replace("ausrufezeichen", "!")
                         text = text.replace("punkt", ".")
                         text = text.replace("neue zeile", "\n")
+                        text = text.replace("neuer zeile", "\n")
                         text = text.replace("neu zeile", "\n")
                         text = text.replace("leerzeichen", " ")
                         text = text.replace(" ,", ",")
