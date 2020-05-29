@@ -289,6 +289,10 @@ def main(ARGS):
                 elif text == 'neuer tab' or text == 'neuer tap':
                     pyautogui.hotkey('ctrl', 't')
                     done_something = True
+                elif "ende" in text and "selbst" in text:
+                    talk("ok, ich beende mich selbst und höre nicht mehr weiter zu!", vad_audio)
+                    import sys
+                    sys.exit(0)
                 elif text == 'lautlos' or text == 'wieder laut':
                     os.system("amixer set Master toggle")
                     done_something = True
