@@ -43,10 +43,12 @@ def type_unicode(word):
 def red_text(string):
     print("\u001b[41m\u001b[37;1m" + string + "\033[0m")
 
-def talk(something):
+def talk(something, vad_audio):
     red_text(str(something))
     #os.system("espeak -a 1000 -v german '" + str(something) + "' 2> /dev/null")
+    vad_audio.stream.stop_stream()
     os.system('pico2wave --lang de-DE --wave /tmp/Test.wav "' + str(something) + '" ; play /tmp/Test.wav; rm /tmp/Test.wav')
+    vad_audio.stream.start_stream()
 
 def hole_aktuelles_fenster ():
     out = check_output(["xdotool", "getwindowfocus", "getwindowname"])
@@ -153,8 +155,16 @@ class VADAudio(Audio):
         super().__init__(device=device, input_rate=input_rate, file=file)
         self.vad = webrtcvad.Vad(aggressiveness)
 
+    def pause(self):
+        self.stream.stop_stream()
+
+    def resume(self):
+        self.stream.stop_stream()
+        self.stream.start_stream()
+
     def frame_generator(self):
         """Generator that yields all audio frames from microphone."""
+
         if self.input_rate == self.RATE_PROCESS:
             while True:
                 yield self.read()
@@ -168,10 +178,15 @@ class VADAudio(Audio):
             Example: (frame, ..., frame, None, frame, ..., frame, None, ...)
                       |---utterence---|        |---utterence---|
         """
+
+
         if frames is None: frames = self.frame_generator()
         num_padding_frames = padding_ms // self.frame_duration_ms
         ring_buffer = collections.deque(maxlen=num_padding_frames)
         triggered = False
+
+
+
 
         for frame in frames:
             if len(frame) < 640:
@@ -229,6 +244,7 @@ def main(ARGS):
     stream_context = model.createStream()
     wav_data = bytearray()
     starte_schreiben = False
+
     for frame in frames:
         if frame is not None:
             if spinner:
@@ -250,22 +266,22 @@ def main(ARGS):
             if not text == "":
                 red_text("Recognized: >>>%s<<<" % text)
                 if text == 'welches fenster ist im vordergrund' or ("fenster" in text and "fokus" in text):
-                    talk(hole_aktuelles_fenster())
+                    talk(hole_aktuelles_fenster(), vad_audio)
                     done_something = True
                 elif text == 'wechsel fenster' or text == 'fenster wechseln' or text == 'elster wechseln' or text == 'fenster wechsel' or text == 'ester wechseln':
                     pyautogui.hotkey('alt', 'tab')
                     time.sleep(1)
-                    talk(hole_aktuelles_fenster())
+                    talk(hole_aktuelles_fenster(), vad_audio)
                     done_something = True
                 elif text == 'nächster tab' or text == 'nächster ta'  or text == 'nächster tap':
                     pyautogui.hotkey('ctrl', 'tab')
                     time.sleep(1)
-                    talk(hole_aktuelles_fenster())
+                    talk(hole_aktuelles_fenster(), vad_audio)
                     done_something = True
                 elif text == 'letzter tab' or text == 'letzter ta'  or text == 'letzter tap':
                     pyautogui.hotkey('ctrl', 'shift', 'tab')
                     time.sleep(1)
-                    talk(hole_aktuelles_fenster())
+                    talk(hole_aktuelles_fenster(), vad_audio)
                     done_something = True
                 elif text == 'schließe tab' or text == 'schließe tap':
                     pyautogui.hotkey('ctrl', 'w')
@@ -288,7 +304,7 @@ def main(ARGS):
                 elif text == 'wie wird das wetter morgen' or ("wetter" in text and "morgen" in text):
                     warmmorgen = get_temperature_tomorrow("Dresden")
                     luftfeuchtemorgen = get_humidity_tomorrow("Dresden")
-                    talk("Morgen wird es " + str(warmmorgen) + " mit " + str(luftfeuchtemorgen) + " lufteuchtigkeit")
+                    talk("Morgen wird es " + str(warmmorgen) + " mit " + str(luftfeuchtemorgen) + " lufteuchtigkeit", vad_audio)
                     done_something = True
                 elif text == 'starte internet' or text == 'state internet':
                     os.system("firefox")
@@ -303,8 +319,12 @@ def main(ARGS):
                     pyautogui.hotkey('ctrl', 'a')
                     pyautogui.hotkey('del')
                     done_something = True
+                elif 'wie geht es dir' == text:
+                    talk("Ich kann mich aktuell nicht beklagen. Wahrscheinlich deshalb, weil ich nur eine Maschine bin und gar nichts fühle.", vad_audio)
+                    done_something = True
                 elif 'radio eins' in text:
-                    talk("Ich spiele Radio eins ab")
+                    talk("Ich spiele Radio eins ab", vad_audio)
+                    done_something = True
                     os.system("vlc https://www.radioeins.de/live.m3u")
                 elif text == 'löschen':
                     pyautogui.hotkey('del')
@@ -334,7 +354,8 @@ def main(ARGS):
                             "5 von 4 Leuten haben Probleme mit Mathematik!"
                     ]
 
-                    talk(random.choice(array))
+                    talk(random.choice(array), vad_audio)
+                    done_something = True
                 elif text == 'alles vorlesen':
                     pyautogui.hotkey('ctrl', 'a')
                     pyautogui.hotkey('ctrl', 'c')
