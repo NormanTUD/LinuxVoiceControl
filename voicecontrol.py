@@ -288,11 +288,13 @@ def main(ARGS):
                 elif 'was ist' in text and 'grenzwert' in text:
                     talk("Seh ich aus wie WolframAlpha? Diese Aufgabe ist mir viel zu schwer", vad_audio);
                 elif 'formel eingeben' in text or 'formel ein geben' in text or 'formell eingeben' in text or 'formell ein geben' in text:
-                    talk("Sprich zeichen für zeichen ein und sage wenn fertig 'einen text eingeben'", vad_audio)
+                    talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'", vad_audio)
                     is_formel = True
+                    play_sound("bleep.wav", vad_audio)
                 elif is_formel and 'text eingeben' in text:
                     talk("Ab jetzt wieder Text", vad_audio)
                     is_formel = False
+                    play_sound("bleep.wav", vad_audio)
                 elif text == 'letzter tab' or text == 'letzter ta'  or text == 'letzter tap':
                     pyautogui.hotkey('ctrl', 'shift', 'tab')
                     time.sleep(1)
