@@ -250,6 +250,7 @@ def main(ARGS):
     stream_context = model.createStream()
     wav_data = bytearray()
     starte_schreiben = False
+    is_formel = False
 
     for frame in frames:
         if frame is not None:
@@ -284,6 +285,14 @@ def main(ARGS):
                     time.sleep(1)
                     talk(hole_aktuelles_fenster(), vad_audio)
                     done_something = True
+                elif 'was ist' in text and 'grenzwert' in text:
+                    talk("Seh ich aus wie WolframAlpha? Diese Aufgabe ist mir viel zu schwer", vad_audio);
+                elif 'formel eingeben' in text or 'formel ein geben' in text or 'formell eingeben' in text or 'formell ein geben' in text:
+                    talk("Sprich zeichen für zeichen ein und sage wenn fertig 'einen text eingeben'", vad_audio)
+                    is_formel = True
+                elif is_formel and 'text eingeben' in text:
+                    talk("Ab jetzt wieder Text", vad_audio)
+                    is_formel = False
                 elif text == 'letzter tab' or text == 'letzter ta'  or text == 'letzter tap':
                     pyautogui.hotkey('ctrl', 'shift', 'tab')
                     time.sleep(1)
@@ -291,9 +300,7 @@ def main(ARGS):
                     done_something = True
                 elif "alle fenster" in text:
                     Window = wmctrl.Window
-
                     x = Window.list()
-
                     for wn in Window.list():
                         talk(wn.wm_name, vad_audio)
                 elif text == 'schließe tab' or text == 'schließe tap':
@@ -301,6 +308,9 @@ def main(ARGS):
                     done_something = True
                 elif text == 'neuer tab' or text == 'neuer tap':
                     pyautogui.hotkey('ctrl', 't')
+                    done_something = True
+                elif text == 'neues fenster':
+                    pyautogui.hotkey('ctrl', 'n')
                     done_something = True
                 elif "ende" in text and "selbst" in text:
                     talk("ok, ich beende mich selbst und höre nicht mehr weiter zu!", vad_audio)
@@ -315,6 +325,8 @@ def main(ARGS):
                 elif text == 'leiser':
                     pyautogui.hotkey('volumedown')
                     done_something = True
+                elif text == 'kannst du mich hören':
+                    talk("Ja, kann ich", vad_audio)
                 elif text == 'abspielen' or text == 'spiel ab':
                     pyautogui.hotkey('space')
                     done_something = True
@@ -342,6 +354,9 @@ def main(ARGS):
                 elif 'radio eins' in text:
                     talk("Ich spiele Radio eins ab", vad_audio)
                     done_something = True
+                    talk("Warte bitte, bis der Stream geladen ist", vad_audio)
+                    if starte_schreiben:
+                        starte_schreiben = False
                     os.system("vlc https://www.radioeins.de/live.m3u")
                 elif text == 'löschen':
                     pyautogui.hotkey('del')
@@ -349,6 +364,17 @@ def main(ARGS):
                 elif 'rückgängig' in text and 'letzte' in text and 'aktion' in text:
                     pyautogui.hotkey('ctrl', 'z')
                     done_something = True
+                elif text == 'aktuelle zeile markieren':
+                    pyautogui.hotkey('home')
+                    pyautogui.hotkey('shift', 'end')
+                elif text == 'aktuelle zeile als gleichung sehen und lösen' or "ausrechnen" in text:
+                    pyautogui.hotkey('home')
+                    pyautogui.hotkey('shift', 'end')
+                    pyautogui.hotkey('ctrl', 'c')
+                    vad_audio.stream.stop_stream()
+                    os.system('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
+                    os.system('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /" | sed -e "s/-/ minus /" | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
+                    vad_audio.stream.start_stream()
                 elif text == 'wiederholen':
                     pyautogui.hotkey('ctrl', 'y')
                     done_something = True
@@ -393,6 +419,43 @@ def main(ARGS):
                         play_sound("line_end.wav", vad_audio)
                         starte_schreiben = False
                         done_something = True
+                    elif is_formel:
+                        text = text.replace("null", "0")
+                        text = text.replace("eins", "1")
+                        text = text.replace("zwei", "2")
+                        text = text.replace("drei", "3")
+                        text = text.replace("vier", "4")
+                        text = text.replace("fünf", "5")
+                        text = text.replace("sechs", "6")
+                        text = text.replace("sieben", "7")
+                        text = text.replace("acht", "8")
+                        text = text.replace("neun", "9")
+                        text = text.replace("komma", ",")
+                        text = text.replace("plus", "+")
+                        text = text.replace("wurzel", "sqrt ")
+                        text = text.replace(" ex ", "x")
+                        text = text.replace("fluss", "+")
+                        text = text.replace("hoch", "^")
+                        text = text.replace("minus", "-")
+                        text = text.replace("gleich", "=")
+                        text = text.replace("mal", "*")
+                        text = text.replace("geteiltdurch", "/")
+                        text = text.replace("geteilt durch", "/")
+                        text = text.replace(" ", "")
+                        text = text.replace("geschweifte klammer auf", "{")
+                        text = text.replace("geschweifteklammerauf", "{")
+                        text = text.replace("geschweifte klammer zu", "}")
+                        text = text.replace("geschweifteklammerzu", "}")
+                        text = text.replace("eckige klammer auf", "[")
+                        text = text.replace("eckigeklammerauf", "[")
+                        text = text.replace("eckige klammer zu", "]")
+                        text = text.replace("eckigeklammerzu", "]")
+                        text = text.replace("klammer auf", "(")
+                        text = text.replace("klammerauf", "(")
+                        text = text.replace("klammer zu", ")")
+                        text = text.replace("klammerzu", ")")
+
+                        type_unicode(text)
                     elif text:
                         text = text + " "
                         done_something = True
