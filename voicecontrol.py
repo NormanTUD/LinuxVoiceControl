@@ -78,9 +78,9 @@ class Features():
         self.basefeatures = BaseFeatures()
         self.controlkeyboard = controlkeyboard
         self.radio_streams = {
-            "radio eins": "https://www.radioeins.de/live.m3u",
-            "eins": "https://www.radioeins.de/live.m3u",
-            "sachsen radio": "http://avw.mdr.de/streams/284280-0_mp3_high.m3u"
+            "(?:radio )?eins": {"link": "https://www.radioeins.de/live.m3u", "name": "Radio Eins"},
+            "sachsen( radio)?": {"link": "http://avw.mdr.de/streams/284280-0_mp3_high.m3u", "name": "Sachsenradio" },
+            "deutschland\s*funk": {"link": "https://st01.sslstream.dlf.de/dlf/01/64/mp3/stream.mp3", "name": "Deutschlandfunk" }
         }
 
     def grenzwert(self):
@@ -94,9 +94,17 @@ class Features():
         if m.match(r"spieler? radio (.+)"):
             radioname = m.group(1)
 
-        if radioname in self.radio_streams:
-            radio_stream = self.radio_streams[radioname]
-            self.interact.talk("Ich spiele " + str(radioname) + " ab, drücke S T R G C um abzubrechen")
+        radio_stream = None
+        radio_name = None
+        for regex in self.radio_streams:
+            if radio_stream is None:
+                mr = REMatcher(radioname)
+                if mr.match(regex):
+                    radio_stream = self.radio_streams[regex]["link"]
+                    radio_name = self.radio_streams[regex]["name"]
+
+        if radio_stream is not None:
+            self.interact.talk("Ich spiele " + str(radio_name) + " ab, drücke S T R G C um abzubrechen")
             self.interact.vad_audio.stream.stop_stream()
             self.basefeatures.run_system_command("play " + str(radio_stream))
             self.interact.vad_audio.stream.start_stream()
@@ -230,6 +238,8 @@ class TextReplacements():
         text = text.replace("klammerauf", "(")
         text = text.replace("klammer zu", ")")
         text = text.replace("klammerzu", ")")
+        text = text.replace("ausrufezeichen", "!")
+        text = text.replace("fakultät", "!")
         return text
 
 class Interaction():
@@ -253,6 +263,9 @@ class Interaction():
 
     def can_you_hear_me(self):
         self.talk("Ja, kann ich")
+
+    def do_you_hear_me (self):
+        self.talk("Ja, ich höre dich")
 
     def play_sound (self, path):
         self.vad_audio.stream.stop_stream()
@@ -396,7 +409,8 @@ class AnalyzeAudio ():
         self.regexes = {
             "^leiser$": self.guitools.volume_down,
             "^lauter$": self.guitools.volume_up,
-            "^(?:(?:kannst du mich hören)|(?:hörst du mich))$": self.interact.can_you_hear_me,
+            "^(?:(?:kannst du mich hören))$": self.interact.can_you_hear_me,
+            "^(?:(?:hörst du mich))$": self.interact.do_you_hear_me,
             "^star?te internet$": self.guitools.start_browser,
             "^alles vorlesen$": self.features.read_aloud,
             "^löschen$": self.guitools.delete,
