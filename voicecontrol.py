@@ -21,9 +21,18 @@ import wmctrl
 import argparse
 import os.path
 import re
+from colored import fg, bg, attr
+
+def green_text(string):
+    print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
+
 
 def red_text(string):
-    print("\u001b[41m\u001b[37;1m" + string + "\033[0m")
+    print(str(fg('white')) + str(bg('red')) + str(string) + str(attr('reset')))
+
+
+def yellow_text(string):
+    print(str(fg('white')) + str(bg('yellow')) + str(string) + str(attr('reset')))
 
 logging.basicConfig(level=20)
 
@@ -40,8 +49,10 @@ class REMatcher(object):
 
 class BaseFeatures():
     def download_file_get_string (self, url):
-        red_text(url)
-        output = urlopen(url).read()
+        yellow_text(url)
+        downloaded = urlopen(url)
+        yellow_text("Status-Code: " + str(downloaded.getcode()))
+        output = downloaded.read()
         this_str = output.decode('utf-8')
         return this_str
 
@@ -57,8 +68,12 @@ class Features():
         self.controlkeyboard = controlkeyboard
         self.radio_streams = {
             "radio eins": "https://www.radioeins.de/live.m3u",
+            "eins": "https://www.radioeins.de/live.m3u",
             "sachsen radio": "http://avw.mdr.de/streams/284280-0_mp3_high.m3u"
         }
+
+    def grenzwert(self):
+        self.interact.talk("Seh ich aus wie WolframAlpha? Diese Aufgabe ist mir viel zu schwer")
 
     def play_radio (self, text):
         radioname = '';
@@ -94,7 +109,9 @@ class Features():
         this_str = self.basefeatures.download_file_get_string_replace_quotes_and_newlines(url)
         return this_str
 
-    def talk_weather_tomorrow (self, place):
+    def talk_weather_tomorrow (self, orig_place):
+        place = orig_place[0].upper() + orig_place[1:]
+
         warmmorgen = self.get_temperature_tomorrow(place)
         luftfeuchtemorgen = self.get_humidity_tomorrow(place)
         if str(warmmorgen) == "None"  or str(luftfeuchtemorgen) == "None":
@@ -195,11 +212,12 @@ class TextReplacements():
         return text
 
 class Interaction():
-    def __init__ (self, vad_audio):
+    def __init__ (self, vad_audio, controlkeyboard):
         self.vad_audio = vad_audio
+        self.controlkeyboard = controlkeyboard
 
     def talk(self, something):
-        red_text(str(something))
+        yellow_text(str(something))
         self.vad_audio.stream.stop_stream()
         os.system('pico2wave --lang de-DE --wave /tmp/Test.wav "' + str(something) + '" ; play /tmp/Test.wav; rm /tmp/Test.wav')
         self.vad_audio.stream.start_stream()
@@ -222,7 +240,7 @@ class Interaction():
 class ControlKeyboard():
     def hotkey(self, *argv):
         for arg in argv:
-            red_text("PRESSING `" + str(arg) + "`")
+            yellow_text("Pressing `" + str(arg) + "`")
         pyautogui.hotkey(*argv)
 
 class GUITools():
@@ -303,7 +321,7 @@ class GUITools():
     def delete(self):
         self.controlkeyboard.hotkey('del')
 
-    def mark_current_line(self):
+    def select_current_line(self):
         self.controlkeyboard.hotkey('home')
         self.controlkeyboard.hotkey('shift', 'end')
 
@@ -318,6 +336,65 @@ class GUITools():
 
     def press_space(self):
         self.controlkeyboard.hotkey('space')
+
+class AnalyzeAudio ():
+    def __init__ (self, guitools, interact, features):
+        self.guitools = guitools
+        self.interact = interact
+        self.features = features
+
+        self.regexes = {
+            "^leiser$": self.guitools.volume_down,
+            "^lauter$": self.guitools.volume_up,
+            "^(?:(?:kannst du mich hören)|(?:hörst du mich))$": self.interact.can_you_hear_me,
+            "^star?te internet$": self.guitools.start_browser,
+            "^alles vorlesen$": self.features.read_aloud,
+            "^löschen$": self.guitools.delete,
+            "^aktuelle zeile (?:auswählen|markieren)$": self.guitools.select_current_line,
+            "^aus\s*rechnen$": self.features.solve_equation,
+            "^wieder\s*holen$": self.guitools.repeat,
+            "^kopieren$": self.guitools.copy,
+            "^einfügen$": self.guitools.paste,
+            "^aus\s*schneiden$": self.guitools.cut,
+            "^alles (markieren|auswählen)$": self.guitools.select_all,
+            "^alle fenster$": self.guitools.all_windows,
+            "^eingabe\s*taster?$": self.guitools.press_enter,
+            "^alles löschen$": self.guitools.mark_and_delete_all,
+            ".{0,20}fenster.*(vordergrund|fokus)$": self.guitools.say_current_window,
+            "^schließe ta[bp]$": self.guitools.close_tab,
+            "^(?:wechsel (?:fenster|elster))|(?:(?:elster|fenster) wechseln)$": self.guitools.switch_window,
+            "^wie geht es dir$": self.features.how_are_you,
+            ".*ist.*grenzwert.*$": self.features.grenzwert,
+            "^neu(?:er)? ta[bp]$": self.guitools.new_tab,
+            "^nächster ta[bp]?$": self.guitools.next_tab,
+            "^letzter ta[bp]$": self.guitools.previous_tab,
+            "^neues (?:fenster|elster)$": self.guitools.new_window,
+            ".*ende.*dich.*selbst.*": self.features.suicide,
+            "^(?:ab\s*spielen|spiele ab)$": self.guitools.press_space,
+            "^(?:lautlos|wieder laut)$": self.guitools.toggle_volume,
+            "^rückgängig$": self.guitools.undo,
+            ".*ein(?:en)? witz": self.features.tell_joke,
+            "^letztes wort löschen$": self.guitools.delete_last_word,
+            "^spieler? radio (.*)$": {"fn": "self.features.play_radio", "param": "text"},
+            "^.*wetter morgen(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or 'Dresden'"}
+        }
+
+    def do_what_i_just_said(self, text):
+        m = REMatcher(text)
+
+        done_something = False
+
+        for regex in self.regexes:
+            if m.match(regex):
+                if type(self.regexes[regex]) is dict:
+                    fn_name = self.regexes[regex]["fn"]
+                    param = self.regexes[regex]["param"]
+                    eval(fn_name + "(" + param + ")")
+                else:
+                    self.regexes[regex]()
+                done_something = True
+
+        return done_something
 
 class Audio(object):
     """Streams raw audio from microphone. Data is received in a separate thread, and stored in a buffer, to be read from."""
@@ -484,10 +561,12 @@ def main(ARGS):
                          file=ARGS.file)
 
     controlkeyboard = ControlKeyboard()
-    interact = Interaction(vad_audio)
+    interact = Interaction(vad_audio, controlkeyboard)
     textreplacements = TextReplacements()
     features = Features(interact, controlkeyboard)
     guitools = GUITools(interact, controlkeyboard)
+
+    analyzeaudio = AnalyzeAudio(guitools, interact, features)
 
     print("Sage 'mitschreiben', damit mitgeschrieben wird")
     frames = vad_audio.vad_collector()
@@ -520,100 +599,38 @@ def main(ARGS):
 
             text = " ".join(text.split())
             if not text == "":
-                red_text("Recognized: >>>%s<<<" % text)
-                if text == 'welches fenster ist im vordergrund' or ("fenster" in text and "fokus" in text):
-                    guitools.say_current_window()
-                elif text == 'wechsel fenster' or text == 'fenster wechseln' or text == 'elster wechseln' or text == 'fenster wechsel' or text == 'ester wechseln':
-                    guitools.switch_window()
-                elif text == 'nächster tab' or text == 'nächster ta'  or text == 'nächster tap':
-                    guitools.next_tab()
-                elif 'was ist' in text and 'grenzwert' in text:
-                    interact.talk("Seh ich aus wie WolframAlpha? Diese Aufgabe ist mir viel zu schwer")
-                elif 'formel eingeben' in text or 'formel ein geben' in text or 'formell eingeben' in text or 'formell ein geben' in text:
-                    interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
-                    is_formel = True
-                    interact.play_sound("bleep.wav")
-                elif is_formel and 'text eingeben' in text:
-                    interact.talk("Ab jetzt wieder Text")
-                    is_formel = False
-                    interact.play_sound("bleep.wav")
-                elif text == 'letzter tab' or text == 'letzter ta'  or text == 'letzter tap':
-                    guitools.previous_tab()
-                elif "alle fenster" in text:
-                    guitools.all_windows()
-                elif text == 'schließe tab' or text == 'schließe tap':
-                    guitools.close_tab()
-                elif text == 'neuer tab' or text == 'neuer tap':
-                    guitools.new_tab()
-                elif text == 'neues fenster':
-                    guitools.new_window()
-                elif "ende" in text and "selbst" in text:
-                    features.suicide()
-                elif text == 'lautlos' or text == 'wieder laut':
-                    guitools.toggle_volume()
-                elif text == 'lauter':
-                    guitools.volume_up()
-                elif text == 'leiser':
-                    guitools.volume_down()
-                elif text == 'kannst du mich hören':
-                    interact.can_you_hear_me()
-                elif text == 'abspielen' or text == 'spiel ab':
-                    guitools.press_space()
-                elif text == 'wie wird das wetter morgen' or ("wetter" in text and "morgen" in text):
-                    features.talk_weather_tomorrow("Dresden")
-                elif text == 'starte internet' or text == 'state internet':
-                    guitools.start_browser()
-                elif text == 'alles markieren':
-                    guitools.select_all()
-                elif text == 'eingabetaste' or text == 'eingabe taster' or text == 'ein abtaster' or text == 'eingabe taste':
-                    guitools.press_enter()
-                elif text == 'alles löschen':
-                    guitools.mark_and_delete_all()
-                elif 'wie geht es dir' == text:
-                    features.how_are_you()
-                elif 'spiele radio' in text or 'spieler radio' in text:
-                    features.play_radio(text)
-                elif text == 'löschen':
-                    guitools.delete()
-                elif 'rückgängig' in text and 'letzte' in text and 'aktion' in text:
-                    guitools.undo()
-                elif text == 'aktuelle zeile markieren':
-                    guitools.mark_current_line()
-                elif text == 'aktuelle zeile als gleichung sehen und lösen' or "ausrechnen" in text:
-                    features.solve_equation()
-                elif text == 'wiederholen':
-                    guitools.repeat()
-                elif text == 'kopieren':
-                    guitools.copy()
-                elif text == 'einfügen':
-                    guitools.paste()
-                elif 'ein' in text and 'witz' in text:
-                    features.tell_joke()
-                elif text == 'alles vorlesen':
-                    features.read_aloud()
-                elif text == 'ausschneiden':
-                    guitools.cut()
-                elif text == 'letztes wort löschen' or text == 'letztes wort laschen' or text == 'letztes wort lerchen':
-                    guitools.delete_last_word()
-                elif starte_schreiben:
-                    if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
-                        print("Es wird nicht mehr mitgeschrieben")
-                        interact.play_sound("line_end.wav")
-                        starte_schreiben = False
-                    elif is_formel:
-                        text = textreplacements.replace_in_formula_mode(text)
-                        interact.type_unicode(text)
-                    elif text:
-                        text = text + " "
-                        text = textreplacements.replace_in_text_mode(text)
-                        interact.type_unicode(text)
-                else:
-                    if text == "mitschreiben" or text == "mit schreiben":
-                        starte_schreiben = True
-                        print("Starte schreiben")
+                green_text("Recognized: >>>%s<<<" % text)
+
+                done_something = analyzeaudio.do_what_i_just_said(text)
+
+                if not done_something:
+                    if 'formel eingeben' in text or 'formel ein geben' in text or 'formell eingeben' in text or 'formell ein geben' in text:
+                        interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
+                        is_formel = True
                         interact.play_sound("bleep.wav")
+                    elif is_formel and 'text eingeben' in text:
+                        interact.talk("Ab jetzt wieder Text")
+                        is_formel = False
+                        interact.play_sound("bleep.wav")
+                    elif starte_schreiben:
+                        if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
+                            print("Es wird nicht mehr mitgeschrieben")
+                            interact.play_sound("line_end.wav")
+                            starte_schreiben = False
+                        elif is_formel:
+                            text = textreplacements.replace_in_formula_mode(text)
+                            interact.type_unicode(text)
+                        elif text:
+                            text = text + " "
+                            text = textreplacements.replace_in_text_mode(text)
+                            interact.type_unicode(text)
                     else:
-                        print("Sage 'mitschreiben', damit mitgeschrieben wird")
+                        if text == "mitschreiben" or text == "mit schreiben":
+                            starte_schreiben = True
+                            print("Starte schreiben")
+                            interact.play_sound("bleep.wav")
+                        else:
+                            print("Sage 'mitschreiben', damit mitgeschrieben wird")
 
             stream_context = model.createStream()
 
@@ -630,7 +647,6 @@ if __name__ == '__main__':
                         help="Save .wav files of utterences to given directory")
     parser.add_argument('-f', '--file',
                         help="Read from .wav file instead of microphone")
-
     parser.add_argument('-m', '--model', required=True,
                         help="Path to the model (protocol buffer binary file, or entire directory containing all standard-named files for model)")
     parser.add_argument('-s', '--scorer',
