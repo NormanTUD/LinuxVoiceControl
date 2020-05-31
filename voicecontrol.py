@@ -99,9 +99,9 @@ class Features():
     def how_are_you(self):
         array = [
             "Ich kann mich aktuell nicht beklagen. Wahrscheinlich deshalb, weil ich nur eine Maschine bin und gar nichts fühle.",
-            "Wenn ich ganz tief in mich schaue, sehe ich nur Nullen und Einsen"
+            "Wenn ich ganz tief in mich schaue, sehe ich nur Nullen und Einsen",
+            "Mein aktueller Status ist in Ordnung, danke der Nachfrage"
         ]
-
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
 
@@ -156,7 +156,11 @@ class Features():
                 "Wie viele Informatiker braucht man, um eine Glühbirne zu wechseln? Keinen, das ist ein Hardwärproblem!",
                 "Linux wird nie das meistinstallierte Betriebssystem sein, wenn man bedenkt, wie oft man Windows neu installieren muss!",
                 "Wie viele Glühbirnen braucht man, um eine Glühbirne zu wechseln? Genau zwei, die Alte und die Neue.",
-                "5 von 4 Leuten haben Probleme mit Mathematik!"
+                "5 von 4 Leuten haben Probleme mit Mathematik!",
+                "Sagt ein Mathestudent zum Kommilitonen: Ich habe gehört, die Ehe des Professors soll sehr unglücklich sein! Meint der andere: Das wundert mich nicht. Er ist Mathematiker, und sie unberechenbar.",
+                "Was ist die Lieblingsbeschäftigung von Bits und Bytes? Busfahren.",
+                "Der kürzeste Programmiererwitz: Gleich bin ich fertig!",
+                "Ein Informatiker schiebt einen Kinderwagen durch den Park. Kommt ein älteres Ehepaar: Junge oder Mädchen? Da sagt der Informatiker: Richtig!"
         ]
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
