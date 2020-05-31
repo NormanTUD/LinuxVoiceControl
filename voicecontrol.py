@@ -18,52 +18,234 @@ import time
 from urllib.request import urlopen
 import random
 import wmctrl
-
-def play_sound (path, vad_audio):
-    vad_audio.stream.stop_stream()
-    os.system("play " + path)
-    vad_audio.stream.start_stream()
-
-def get_humidity_tomorrow (place):
-    url = 'https://wttr.in/' + str(place) + '?format="%h"&lang=de'
-    red_text(url)
-    output = urlopen(url).read()
-    this_str = output.decode('utf-8')
-    this_str = this_str.replace('"', '')
-    this_str = this_str.replace("\n", '')
-    return this_str
-
-def get_temperature_tomorrow (place):
-    url = 'https://wttr.in/' + str(place) + '?format="%C"&lang=de'
-    red_text(url)
-    output = urlopen(url).read()
-    this_str = output.decode('utf-8')
-    this_str = this_str.replace('"', '')
-    this_str = this_str.replace("\n", '')
-    return this_str
-
-def type_unicode(word):
-    pyperclip.copy(word)
-    pyautogui.hotkey("ctrl", "v")
+import argparse
+import os.path
+import re
 
 def red_text(string):
     print("\u001b[41m\u001b[37;1m" + string + "\033[0m")
 
-def talk(something, vad_audio):
-    red_text(str(something))
-    #os.system("espeak -a 1000 -v german '" + str(something) + "' 2> /dev/null")
-    vad_audio.stream.stop_stream()
-    os.system('pico2wave --lang de-DE --wave /tmp/Test.wav "' + str(something) + '" ; play /tmp/Test.wav; rm /tmp/Test.wav')
-    vad_audio.stream.start_stream()
-
-def hole_aktuelles_fenster ():
-    out = check_output(["xdotool", "getwindowfocus", "getwindowname"])
-    this_str = out.decode("utf-8")
-    return this_str
-
-#sys.exit(1)
-
 logging.basicConfig(level=20)
+
+class REMatcher(object):
+    def __init__(self, matchstring):
+        self.matchstring = matchstring
+
+    def match(self,regexp):
+        self.rematch = re.match(regexp, self.matchstring)
+        return bool(self.rematch)
+
+    def group(self,i):
+        return self.rematch.group(i)
+
+class BaseFeatures():
+    def download_file_get_string (self, url):
+        red_text(url)
+        output = urlopen(url).read()
+        this_str = output.decode('utf-8')
+        return this_str
+
+    def download_file_get_string_replace_quotes_and_newlines (self, url):
+        this_str = self.download_file_get_string(url)
+        this_str = this_str.replace('"', '')
+        this_str = this_str.replace("\n", '')
+
+class Features():
+    def __init__ (self, interact):
+        self.interact = interact
+        self.basefeatures = BaseFeatures()
+        self.radio_streams = {
+            "radio eins": "https://www.radioeins.de/live.m3u",
+            "sachsen radio": "http://avw.mdr.de/streams/284280-0_mp3_high.m3u"
+        }
+
+    def play_radio (self, text):
+        radioname = '';
+
+        m = REMatcher(text)
+
+        if m.match(r"spieler? radio (.+)"):
+            radioname = m.group(1)
+
+        if radioname in self.radio_streams:
+            radio_stream = self.radio_streams[radioname]
+            self.interact.talk("Ich spiele " + str(radioname) + " ab, drücke S T R G C um abzubrechen")
+            self.interact.vad_audio.stream.stop_stream()
+            os.system("play " + str(radio_stream))
+            self.interact.vad_audio.stream.start_stream()
+        else:
+            self.interact.talk("Das Radio mit dem Namen " + str(radioname) + " ist mir nicht bekannt")
+
+    def how_are_you(self):
+        self.interact.talk("Ich kann mich aktuell nicht beklagen. Wahrscheinlich deshalb, weil ich nur eine Maschine bin und gar nichts fühle.")
+
+    def suicide (self):
+        self.interact.talk("ok, ich beende mich selbst und höre nicht mehr weiter zu!")
+        sys.exit(0)
+
+    def get_temperature_tomorrow (self, place):
+        url = 'https://wttr.in/' + str(place) + '?format="%C"&lang=de'
+        this_str = self.basefeatures.download_file_get_string_replace_quotes_and_newlines(url)
+        return this_str
+
+    def get_humidity_tomorrow (self, place):
+        url = 'https://wttr.in/' + str(place) + '?format="%h"&lang=de'
+        this_str = self.basefeatures.download_file_get_string_replace_quotes_and_newlines(url)
+        return this_str
+
+    def talk_weather_tomorrow (self, place):
+        warmmorgen = self.get_temperature_tomorrow(place)
+        luftfeuchtemorgen = self.get_humidity_tomorrow(place)
+        if str(warmmorgen) == "None"  or str(luftfeuchtemorgen) == "None":
+            self.interact.talk("Keine Ahnung, irgendwas ist schiefgelaufen beim Holen der Wetterdaten")
+        else:
+            self.interact.talk("Morgen wird es " + str(warmmorgen) + " mit " + str(luftfeuchtemorgen) + " lufteuchtigkeit")
+
+    def solve_equation (self):
+        pyautogui.hotkey('home')
+        pyautogui.hotkey('shift', 'end')
+        pyautogui.hotkey('ctrl', 'c')
+        self.interact.vad_audio.stream.stop_stream()
+        os.system('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
+        os.system('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /" | sed -e "s/-/ minus /" | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
+        self.interact.vad_audio.stream.start_stream()
+
+    def read_aloud(self):
+        pyautogui.hotkey('ctrl', 'a')
+        pyautogui.hotkey('ctrl', 'c')
+
+        self.interact.vad_audio.stream.stop_stream()
+        os.system('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
+        self.interact.vad_audio.stream.start_stream()
+
+    def tell_joke(self):
+        array = [
+                "Was ist weiß und steht hinter einem Baum? Eine scheue Milch",
+                "Gott sprach: Es werde Licht! Tschack Norris antwortete! Sag bitte!",
+                "Kommt ein Wektor zur Drogenberatung: Hilfe, ich bin line ar abhängig.",
+                "Was macht ein Mathematiker im Garten? Wurzeln ziehen.",
+                "Mathematiker sterben nie! sie verlieren nur einige ihrer Funktionen.",
+                "Wie viele Informatiker braucht man, um eine Glühbirne zu wechseln? Keinen, das ist ein Hardwärproblem!",
+                "Linux wird nie das meistinstallierte Betriebssystem sein, wenn man bedenkt, wie oft man Windows neu installieren muss!",
+                "Wie viele Glühbirnen braucht man, um eine Glühbirne zu wechseln? Genau zwei, die Alte und die Neue.",
+                "5 von 4 Leuten haben Probleme mit Mathematik!"
+        ]
+
+        self.interact.talk(random.choice(array))
+
+class TextReplacements():
+    def replace_in_text_mode (self, text):
+        text = text.replace("komma", ",")
+        text = text.replace("ausrufezeichen", "!")
+        text = text.replace("punkt", ".")
+        text = text.replace("neue zeile", "\n")
+        text = text.replace("neuer zeile", "\n")
+        text = text.replace("neu zeile", "\n")
+        text = text.replace("leerzeichen", " ")
+        text = text.replace("geschweifte klammer auf", "{")
+        text = text.replace("geschweifte klammer zu", "}")
+        text = text.replace("eckige klammer auf", "[")
+        text = text.replace("eckige klammer zu", "]")
+        text = text.replace("klammer auf", "(")
+        text = text.replace("klammer zu", ")")
+        text = text.replace(" ,", ",")
+        text = text.replace(" !", "!")
+        text = text.replace(" .", ".")
+        text = text.replace("  ", " ")
+        text = text.replace("\n ", "\n")
+        text = text.replace(" \n", "\n")
+        return text
+
+    def replace_in_formula_mode(self, text):
+        text = text.replace("null", "0")
+        text = text.replace("eins", "1")
+        text = text.replace("zwei", "2")
+        text = text.replace("drei", "3")
+        text = text.replace("vier", "4")
+        text = text.replace("fünf", "5")
+        text = text.replace("sechs", "6")
+        text = text.replace("sieben", "7")
+        text = text.replace("acht", "8")
+        text = text.replace("neun", "9")
+        text = text.replace("komma", ",")
+        text = text.replace("plus", "+")
+        text = text.replace("wurzel", "sqrt ")
+        text = text.replace(" ex ", "x")
+        text = text.replace("fluss", "+")
+        text = text.replace("hoch", "^")
+        text = text.replace("minus", "-")
+        text = text.replace("gleich", "=")
+        text = text.replace("mal", "*")
+        text = text.replace("geteiltdurch", "/")
+        text = text.replace("geteilt durch", "/")
+        text = text.replace(" ", "")
+        text = text.replace("geschweifte klammer auf", "{")
+        text = text.replace("geschweifteklammerauf", "{")
+        text = text.replace("geschweifte klammer zu", "}")
+        text = text.replace("geschweifteklammerzu", "}")
+        text = text.replace("eckige klammer auf", "[")
+        text = text.replace("eckigeklammerauf", "[")
+        text = text.replace("eckige klammer zu", "]")
+        text = text.replace("eckigeklammerzu", "]")
+        text = text.replace("klammer auf", "(")
+        text = text.replace("klammerauf", "(")
+        text = text.replace("klammer zu", ")")
+        text = text.replace("klammerzu", ")")
+        return text
+
+class Interaction():
+    def __init__ (self, vad_audio):
+        self.vad_audio = vad_audio
+
+    def talk(self, something):
+        red_text(str(something))
+        self.vad_audio.stream.stop_stream()
+        os.system('pico2wave --lang de-DE --wave /tmp/Test.wav "' + str(something) + '" ; play /tmp/Test.wav; rm /tmp/Test.wav')
+        self.vad_audio.stream.start_stream()
+
+    def play_sound (self, path):
+        self.vad_audio.stream.stop_stream()
+        if os.path.isfile(path):
+            os.system("play " + path)
+        else:
+            self.talk("Die Datei " + str(path) + " konnte nicht gefunden werden!")
+        self.vad_audio.stream.start_stream()
+
+    def type_unicode(self, word):
+        pyperclip.copy(word)
+        pyautogui.hotkey("ctrl", "v")
+
+class GUITools():
+    def __init__ (self, interact):
+        self.interact = interact
+
+    def toggle_volume(self):
+        self.interact.talk("OK")
+        os.system("amixer set Master toggle")
+
+    def say_current_window(self):
+        self.interact.talk(self.get_current_window())
+
+    def switch_window (self):
+        pyautogui.hotkey('alt', 'tab')
+        time.sleep(1)
+        self.say_current_window()
+
+    def next_tab (self):
+        pyautogui.hotkey('ctrl', 'tab')
+        time.sleep(1)
+        self.say_current_window()
+
+    def get_current_window (self):
+        out = check_output(["xdotool", "getwindowfocus", "getwindowname"])
+        this_str = out.decode("utf-8")
+        return this_str
+
+    def all_windows(self):
+        Window = wmctrl.Window
+        x = Window.list()
+        for wn in Window.list():
+            self.interact.talk(wn.wm_name)
 
 class Audio(object):
     """Streams raw audio from microphone. Data is received in a separate thread, and stored in a buffer, to be read from."""
@@ -161,13 +343,6 @@ class VADAudio(Audio):
         super().__init__(device=device, input_rate=input_rate, file=file)
         self.vad = webrtcvad.Vad(aggressiveness)
 
-    def pause(self):
-        self.stream.stop_stream()
-
-    def resume(self):
-        self.stream.stop_stream()
-        self.stream.start_stream()
-
     def frame_generator(self):
         """Generator that yields all audio frames from microphone."""
 
@@ -190,9 +365,6 @@ class VADAudio(Audio):
         num_padding_frames = padding_ms // self.frame_duration_ms
         ring_buffer = collections.deque(maxlen=num_padding_frames)
         triggered = False
-
-
-
 
         for frame in frames:
             if len(frame) < 640:
@@ -238,7 +410,11 @@ def main(ARGS):
                          device=ARGS.device,
                          input_rate=ARGS.rate,
                          file=ARGS.file)
-    print("Listening (ctrl-C to exit)...")
+
+    interact = Interaction(vad_audio)
+    textreplacements = TextReplacements()
+    features = Features(interact)
+    guitools = GUITools(interact)
 
     print("Sage 'mitschreiben', damit mitgeschrieben wird")
     frames = vad_audio.vad_collector()
@@ -248,6 +424,7 @@ def main(ARGS):
     if not ARGS.nospinner:
         spinner = Halo(spinner='line')
     stream_context = model.createStream()
+
     wav_data = bytearray()
     starte_schreiben = False
     is_formel = False
@@ -269,239 +446,112 @@ def main(ARGS):
             text = stream_context.finishStream()
 
             text = " ".join(text.split())
-            done_something = False
             if not text == "":
                 red_text("Recognized: >>>%s<<<" % text)
                 if text == 'welches fenster ist im vordergrund' or ("fenster" in text and "fokus" in text):
-                    talk(hole_aktuelles_fenster(), vad_audio)
-                    done_something = True
+                    guitools.say_current_window()
                 elif text == 'wechsel fenster' or text == 'fenster wechseln' or text == 'elster wechseln' or text == 'fenster wechsel' or text == 'ester wechseln':
-                    pyautogui.hotkey('alt', 'tab')
-                    time.sleep(1)
-                    talk(hole_aktuelles_fenster(), vad_audio)
-                    done_something = True
+                    guitools.switch_window()
                 elif text == 'nächster tab' or text == 'nächster ta'  or text == 'nächster tap':
-                    pyautogui.hotkey('ctrl', 'tab')
-                    time.sleep(1)
-                    talk(hole_aktuelles_fenster(), vad_audio)
-                    done_something = True
+                    guitools.next_tab()
                 elif 'was ist' in text and 'grenzwert' in text:
-                    talk("Seh ich aus wie WolframAlpha? Diese Aufgabe ist mir viel zu schwer", vad_audio);
+                    interact.talk("Seh ich aus wie WolframAlpha? Diese Aufgabe ist mir viel zu schwer")
                 elif 'formel eingeben' in text or 'formel ein geben' in text or 'formell eingeben' in text or 'formell ein geben' in text:
-                    talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'", vad_audio)
+                    interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
                     is_formel = True
-                    play_sound("bleep.wav", vad_audio)
+                    interact.play_sound("bleep.wav")
                 elif is_formel and 'text eingeben' in text:
-                    talk("Ab jetzt wieder Text", vad_audio)
+                    interact.talk("Ab jetzt wieder Text")
                     is_formel = False
-                    play_sound("bleep.wav", vad_audio)
+                    interact.play_sound("bleep.wav")
                 elif text == 'letzter tab' or text == 'letzter ta'  or text == 'letzter tap':
                     pyautogui.hotkey('ctrl', 'shift', 'tab')
                     time.sleep(1)
-                    talk(hole_aktuelles_fenster(), vad_audio)
-                    done_something = True
+                    interact.talk(guitools.get_current_window())
                 elif "alle fenster" in text:
-                    Window = wmctrl.Window
-                    x = Window.list()
-                    for wn in Window.list():
-                        talk(wn.wm_name, vad_audio)
+                    guitools.all_windows()
                 elif text == 'schließe tab' or text == 'schließe tap':
                     pyautogui.hotkey('ctrl', 'w')
-                    done_something = True
                 elif text == 'neuer tab' or text == 'neuer tap':
                     pyautogui.hotkey('ctrl', 't')
-                    done_something = True
                 elif text == 'neues fenster':
                     pyautogui.hotkey('ctrl', 'n')
-                    done_something = True
                 elif "ende" in text and "selbst" in text:
-                    talk("ok, ich beende mich selbst und höre nicht mehr weiter zu!", vad_audio)
-                    import sys
-                    sys.exit(0)
+                    features.suicide()
                 elif text == 'lautlos' or text == 'wieder laut':
-                    os.system("amixer set Master toggle")
-                    done_something = True
+                    guitools.toggle_volume()
                 elif text == 'lauter':
                     pyautogui.hotkey('volumeup')
-                    done_something = True
                 elif text == 'leiser':
                     pyautogui.hotkey('volumedown')
-                    done_something = True
                 elif text == 'kannst du mich hören':
-                    talk("Ja, kann ich", vad_audio)
+                    interact.talk("Ja, kann ich")
                 elif text == 'abspielen' or text == 'spiel ab':
                     pyautogui.hotkey('space')
-                    done_something = True
                 elif text == 'wie wird das wetter morgen' or ("wetter" in text and "morgen" in text):
-                    warmmorgen = get_temperature_tomorrow("Dresden")
-                    luftfeuchtemorgen = get_humidity_tomorrow("Dresden")
-                    talk("Morgen wird es " + str(warmmorgen) + " mit " + str(luftfeuchtemorgen) + " lufteuchtigkeit", vad_audio)
-                    done_something = True
+                    features.talk_weather_tomorrow("Dresden")
                 elif text == 'starte internet' or text == 'state internet':
                     os.system("firefox")
-                    done_something = True
                 elif text == 'alles markieren':
                     pyautogui.hotkey('ctrl', 'a')
-                    done_something = True
                 elif text == 'eingabetaste' or text == 'eingabe taster' or text == 'ein abtaster' or text == 'eingabe taste':
                     pyautogui.hotkey('enter')
-                    done_something = True
                 elif text == 'alles löschen':
                     pyautogui.hotkey('ctrl', 'a')
                     pyautogui.hotkey('del')
-                    done_something = True
                 elif 'wie geht es dir' == text:
-                    talk("Ich kann mich aktuell nicht beklagen. Wahrscheinlich deshalb, weil ich nur eine Maschine bin und gar nichts fühle.", vad_audio)
-                    done_something = True
-                elif 'radio eins' in text:
-                    talk("Ich spiele Radio eins ab", vad_audio)
-                    done_something = True
-                    talk("Warte bitte, bis der Stream geladen ist", vad_audio)
-                    if starte_schreiben:
-                        starte_schreiben = False
-                    os.system("vlc https://www.radioeins.de/live.m3u")
+                    features.how_are_you()
+                elif 'spiele radio' in text or 'spieler radio' in text:
+                    starte_schreiben = False
+                    features.play_radio(text)
                 elif text == 'löschen':
                     pyautogui.hotkey('del')
-                    done_something = True
                 elif 'rückgängig' in text and 'letzte' in text and 'aktion' in text:
                     pyautogui.hotkey('ctrl', 'z')
-                    done_something = True
                 elif text == 'aktuelle zeile markieren':
                     pyautogui.hotkey('home')
                     pyautogui.hotkey('shift', 'end')
                 elif text == 'aktuelle zeile als gleichung sehen und lösen' or "ausrechnen" in text:
-                    pyautogui.hotkey('home')
-                    pyautogui.hotkey('shift', 'end')
-                    pyautogui.hotkey('ctrl', 'c')
-                    vad_audio.stream.stop_stream()
-                    os.system('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
-                    os.system('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /" | sed -e "s/-/ minus /" | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
-                    vad_audio.stream.start_stream()
+                    features.solve_equation()
                 elif text == 'wiederholen':
                     pyautogui.hotkey('ctrl', 'y')
-                    done_something = True
                 elif text == 'kopieren':
                     pyautogui.hotkey('ctrl', 'c')
-                    done_something = True
                 elif text == 'einfügen':
                     pyautogui.hotkey('ctrl', 'v')
-                    done_something = True
                 elif 'ein' in text and 'witz' in text:
-                    array = [
-                            "Was ist weiß und steht hinter einem Baum? Eine scheue Milch",
-                            "Gott sprach: Es werde Licht! Tschack Norris antwortete! Sag bitte!",
-                            "Kommt ein Wektor zur Drogenberatung: Hilfe, ich bin line ar abhängig.",
-                            "Was macht ein Mathematiker im Garten? Wurzeln ziehen.",
-                            "Mathematiker sterben nie! sie verlieren nur einige ihrer Funktionen.",
-                            "Wie viele Informatiker braucht man, um eine Glühbirne zu wechseln? Keinen, das ist ein Hardwärproblem!",
-                            "Linux wird nie das meistinstallierte Betriebssystem sein, wenn man bedenkt, wie oft man Windows neu installieren muss!",
-                            "Wie viele Glühbirnen braucht man, um eine Glühbirne zu wechseln? Genau zwei, die Alte und die Neue.",
-                            "5 von 4 Leuten haben Probleme mit Mathematik!"
-                    ]
-
-                    talk(random.choice(array), vad_audio)
-                    done_something = True
+                    features.tell_joke()
                 elif text == 'alles vorlesen':
-                    pyautogui.hotkey('ctrl', 'a')
-                    pyautogui.hotkey('ctrl', 'c')
-
-                    vad_audio.stream.stop_stream()
-                    os.system('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
-                    vad_audio.stream.start_stream()
-                    done_something = True
+                    features.read_aloud()
                 elif text == 'ausschneiden':
                     pyautogui.hotkey('ctrl', 'x')
-                    done_something = True
                 elif text == 'letztes wort löschen' or text == 'letztes wort laschen' or text == 'letztes wort lerchen':
                     pyautogui.hotkey('ctrl', 'backspace')
-                    done_something = True
                 elif starte_schreiben:
                     if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
                         print("Es wird nicht mehr mitgeschrieben")
-                        play_sound("line_end.wav", vad_audio)
+                        interact.play_sound("line_end.wav")
                         starte_schreiben = False
-                        done_something = True
                     elif is_formel:
-                        text = text.replace("null", "0")
-                        text = text.replace("eins", "1")
-                        text = text.replace("zwei", "2")
-                        text = text.replace("drei", "3")
-                        text = text.replace("vier", "4")
-                        text = text.replace("fünf", "5")
-                        text = text.replace("sechs", "6")
-                        text = text.replace("sieben", "7")
-                        text = text.replace("acht", "8")
-                        text = text.replace("neun", "9")
-                        text = text.replace("komma", ",")
-                        text = text.replace("plus", "+")
-                        text = text.replace("wurzel", "sqrt ")
-                        text = text.replace(" ex ", "x")
-                        text = text.replace("fluss", "+")
-                        text = text.replace("hoch", "^")
-                        text = text.replace("minus", "-")
-                        text = text.replace("gleich", "=")
-                        text = text.replace("mal", "*")
-                        text = text.replace("geteiltdurch", "/")
-                        text = text.replace("geteilt durch", "/")
-                        text = text.replace(" ", "")
-                        text = text.replace("geschweifte klammer auf", "{")
-                        text = text.replace("geschweifteklammerauf", "{")
-                        text = text.replace("geschweifte klammer zu", "}")
-                        text = text.replace("geschweifteklammerzu", "}")
-                        text = text.replace("eckige klammer auf", "[")
-                        text = text.replace("eckigeklammerauf", "[")
-                        text = text.replace("eckige klammer zu", "]")
-                        text = text.replace("eckigeklammerzu", "]")
-                        text = text.replace("klammer auf", "(")
-                        text = text.replace("klammerauf", "(")
-                        text = text.replace("klammer zu", ")")
-                        text = text.replace("klammerzu", ")")
-
-                        type_unicode(text)
+                        text = textreplacements.replace_in_formula_mode(text)
+                        interact.type_unicode(text)
                     elif text:
                         text = text + " "
-                        done_something = True
-
-                        text = text.replace("komma", ",")
-                        text = text.replace("ausrufezeichen", "!")
-                        text = text.replace("punkt", ".")
-                        text = text.replace("neue zeile", "\n")
-                        text = text.replace("neuer zeile", "\n")
-                        text = text.replace("neu zeile", "\n")
-                        text = text.replace("leerzeichen", " ")
-                        text = text.replace("geschweifte klammer auf", "{")
-                        text = text.replace("geschweifte klammer zu", "}")
-                        text = text.replace("eckige klammer auf", "[")
-                        text = text.replace("eckige klammer zu", "]")
-                        text = text.replace("klammer auf", "(")
-                        text = text.replace("klammer zu", ")")
-                        text = text.replace(" ,", ",")
-                        text = text.replace(" !", "!")
-                        text = text.replace(" .", ".")
-                        text = text.replace("  ", " ")
-                        text = text.replace("\n ", "\n")
-                        text = text.replace(" \n", "\n")
-
-                        #pyautogui.typewrite(text, interval=0.01)
-                        type_unicode(text)
+                        text = textreplacements.replace_in_text_mode(text)
+                        interact.type_unicode(text)
                 else:
                     if text == "mitschreiben" or text == "mit schreiben":
                         starte_schreiben = True
                         print("Starte schreiben")
-                        play_sound("bleep.wav", vad_audio)
-                        done_something = True
+                        interact.play_sound("bleep.wav")
                     else:
                         print("Sage 'mitschreiben', damit mitgeschrieben wird")
-
-            #if not done_something and not text == "":
-            #    play_sound("stamp.wav", vad_audio)
 
             stream_context = model.createStream()
 
 if __name__ == '__main__':
     DEFAULT_SAMPLE_RATE = 16000
 
-    import argparse
     parser = argparse.ArgumentParser(description="Stream from microphone to DeepSpeech using VAD")
 
     parser.add_argument('-v', '--vad_aggressiveness', type=int, default=3,
