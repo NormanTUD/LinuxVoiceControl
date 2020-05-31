@@ -37,3 +37,9 @@ is far from finished!
 ## How to run this?
 
 > python3 voicecontrol.py --model 51.565295.output_graph.pb --scorer de_kenlm.scorer
+
+## "commands" not found from wmctrl
+
+Edit the file /usr/local/lib/python3.7/dist-package/wmctrl.py and a change line 2 to
+
+> from subprocess import getoutput

@@ -1,7 +1,7 @@
 #!/bin/bash
 sudo apt install -y python3 python3-pip libasound2-dev libspeexdsp-dev qalc xsel sed wmctrl
 sudo apt install -y libxml2-dev libxslt1-dev zlib1g-dev libffi-dev
-sudo apt install -y libsasl2-dev libldap2-dev libssl-dev portaudio19-dev
+sudo apt install -y libsasl2-dev libldap2-dev libssl-dev portaudio19-dev python3-tk sox libsox-fmt-all
 
 echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 echo "If libttspico-utils cannot be installed, please"
