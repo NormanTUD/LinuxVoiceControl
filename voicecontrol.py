@@ -183,7 +183,7 @@ class Features():
         hourly = datastore['weather'][1]["hourly"]
         for item in hourly:
             this_item = item['lang_de'][0]['value']
-            if not this_item in weather_status:
+            if len(weather_status) == 0 or weather_status[len(weather_status) - 1] != this_item:
                 weather_status.append(this_item)
 
         hourly_status = ""
@@ -205,7 +205,7 @@ class Features():
         hourly = datastore['weather'][2]["hourly"]
         for item in hourly:
             this_item = item['lang_de'][0]['value']
-            if not this_item in weather_status:
+            if len(weather_status) == 0 or weather_status[len(weather_status) - 1] != this_item:
                 weather_status.append(this_item)
 
         hourly_status = ""
@@ -550,10 +550,11 @@ class GUITools():
         self.controlkeyboard.hotkey('space')
 
 class AnalyzeAudio ():
-    def __init__ (self, guitools, interact, features):
+    def __init__ (self, guitools, interact, features, default_city):
         self.guitools = guitools
         self.interact = interact
         self.features = features
+        self.default_city = default_city
 
         self.regexes = {
             "^leiser$": self.guitools.volume_down,
@@ -592,9 +593,9 @@ class AnalyzeAudio ():
             "^letztes wort löschen$": self.guitools.delete_last_word,
             "^spieler? radio (.*)$": {"fn": "self.features.play_radio", "param": "text"},
             "^(.*)(?:(?:aktuell.*bitcoin)|(?:bitcoin\s*preis))(.*)$": self.features.bitcoin_price,
-            "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_the_day_after_tomorrow", "param": "m.group(1) or 'Dresden'"},
-            "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or 'Dresden'"},
-            "^.*(?:(?:(?:gerade|jetzt)\s*wetter)|(?:wetter (?:gerade|jetzt)))(?: in (.*))?$": {"fn": "self.features.talk_current_weather", "param": "m.group(1) or 'Dresden'"},
+            "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_the_day_after_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
+            "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
+            "^.*(?:(?:(?:gerade|jetzt)\s*wetter)|(?:wetter (?:gerade|jetzt)))(?: in (.*))?$": {"fn": "self.features.talk_current_weather", "param": "m.group(1) or '" + self.default_city+ "'"},
             "^was (?:er)?gibt (.*)?$": {"fn": "self.features.calculate", "param": "m.group(1)"}
         }
 
@@ -785,7 +786,7 @@ def main(ARGS):
     features = Features(interact, controlkeyboard, textreplacements)
     guitools = GUITools(interact, controlkeyboard)
 
-    analyzeaudio = AnalyzeAudio(guitools, interact, features)
+    analyzeaudio = AnalyzeAudio(guitools, interact, features, "Dresden")
 
     print("Sage 'mitschreiben', damit mitgeschrieben wird")
     frames = vad_audio.vad_collector()
