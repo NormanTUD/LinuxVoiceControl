@@ -339,6 +339,10 @@ class GUITools():
         self.controlkeyboard.hotkey('home')
         self.controlkeyboard.hotkey('shift', 'end')
 
+    def delete_current_line (self):
+        self.select_current_line()
+        self.delete()
+
     def paste (self):
         self.controlkeyboard.hotkey('ctrl', 'v')
 
@@ -365,6 +369,7 @@ class AnalyzeAudio ():
             "^alles vorlesen$": self.features.read_aloud,
             "^löschen$": self.guitools.delete,
             "^aktuelle zeile (?:auswählen|markieren)$": self.guitools.select_current_line,
+            "^aktuelle zeile löschen$": self.guitools.delete_current_line,
             "^aus\s*rechnen$": self.features.solve_equation,
             "^wieder\s*holen$": self.guitools.repeat,
             "^kopieren$": self.guitools.copy,
