@@ -127,7 +127,8 @@ class Features():
         array = [
             "Ich kann mich aktuell nicht beklagen. Wahrscheinlich deshalb, weil ich nur eine Maschine bin und gar nichts fühle.",
             "Wenn ich ganz tief in mich schaue, sehe ich nur Nullen und Einsen",
-            "Mein aktueller Status ist in Ordnung, danke der Nachfrage"
+            "Mein aktueller Status ist in Ordnung, danke der Nachfrage!",
+            "Wenn in meiner Software noch Fehler sind, dann merke ich sie gerade zumindest nicht!"
         ]
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
@@ -269,7 +270,7 @@ class Features():
                 "Sagt ein Mathestudent zum Kommilitonen: Ich habe gehört, die Ehe des Professors soll sehr unglücklich sein! Meint der andere: Das wundert mich nicht. Er ist Mathematiker, und sie unberechenbar.",
                 "Was ist die Lieblingsbeschäftigung von Bits und Bytes? Busfahren.",
                 "Der kürzeste Programmiererwitz: Gleich bin ich fertig!",
-                "Ein Informatiker schiebt einen Kinderwagen durch den Park. Kommt ein älteres Ehepaar: Junge oder Mädchen? Da sagt der Informatiker: Richtig!"
+                "Ein Informatiker schiebt einen Kinderwagen durch den Park. Kommt ein älteres Ehepaar und fragt: Junge oder Mädchen? Da sagt der Informatiker: Richtig!"
         ]
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
