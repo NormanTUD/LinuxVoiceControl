@@ -103,7 +103,7 @@ class Features():
 
         m = REMatcher(text)
 
-        if m.match(r"spieler? radio (.+)"):
+        if m.match(r"spiel(?:er)? radio (.+)"):
             radioname = m.group(1)
 
         radio_stream = None
@@ -593,7 +593,7 @@ class AnalyzeAudio ():
             "^rückgängig$": self.guitools.undo,
             ".*ein(?:en)? witz": self.features.tell_joke,
             "^letztes wort löschen$": self.guitools.delete_last_word,
-            "^spieler? radio (.*)$": {"fn": "self.features.play_radio", "param": "text"},
+            "^spiel(?:er)? radio (.*)$": {"fn": "self.features.play_radio", "param": "text"},
             "^(.*)(?:(?:aktuell.*bitcoin)|(?:bitcoin\s*preis))(.*)$": self.features.bitcoin_price,
             "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_the_day_after_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
             "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
