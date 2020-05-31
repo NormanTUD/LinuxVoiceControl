@@ -190,6 +190,27 @@ class Features():
 
         self.interact.talk(weather_string)
         
+    def talk_weather_the_day_after_tomorrow (self, place):
+        datastore = self.get_weather_json(place)
+        maxtemp = datastore['weather'][2]["maxtempC"]
+        mintemp = datastore['weather'][2]["mintempC"]
+
+        weather_status = []
+        hourly = datastore['weather'][2]["hourly"]
+        for item in hourly:
+            this_item = item['lang_de'][0]['value']
+            if not this_item in weather_status:
+                weather_status.append(this_item)
+
+        hourly_status = ""
+        if weather_status:
+            hourly_status = "erst "
+
+        hourly_status = hourly_status + ", dann ".join(weather_status)
+
+        weather_string = "In %s liegt die Temperatur übermorgen zwischen %s und %s Grad. Über den Tag verteilt wird es %s" % (place, mintemp, maxtemp, hourly_status)
+
+        self.interact.talk(weather_string)
 
     def calculate(self, text):
         math_text = self.textreplacements.replace_in_formula_mode(text)
@@ -564,6 +585,7 @@ class AnalyzeAudio ():
             ".*ein(?:en)? witz": self.features.tell_joke,
             "^letztes wort löschen$": self.guitools.delete_last_word,
             "^spieler? radio (.*)$": {"fn": "self.features.play_radio", "param": "text"},
+            "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_the_day_after_tomorrow", "param": "m.group(1) or 'Dresden'"},
             "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or 'Dresden'"},
             "^.*(?:(?:(?:gerade|jetzt)\s*wetter)|(?:wetter (?:gerade|jetzt)))(?: in (.*))?$": {"fn": "self.features.talk_current_weather", "param": "m.group(1) or 'Dresden'"},
             "^was (?:er)?gibt (.*)?$": {"fn": "self.features.calculate", "param": "m.group(1)"}
