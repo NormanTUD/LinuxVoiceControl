@@ -224,6 +224,7 @@ class Features():
         m = REMatcher(math_text)
         if m.match("^\d+(?:,\d+)?((\+|-|\*|/)\d+(?:,\d+)?)$"):
             self.controlkeyboard.copy(math_text)
+            self.controlkeyboard.copy(math_text)
             self.interact.vad_audio.stream.stop_stream()
             self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
             self.interact.talk(math_text + " gleich ")
@@ -411,6 +412,7 @@ class Interaction():
         self.vad_audio.stream.start_stream()
 
     def type_unicode(self, word):
+        self.controlkeyboard.copy(word)
         self.controlkeyboard.copy(word)
         if self.consolemode:
             self.controlkeyboard.hotkey("ctrl", "shift", "v")
