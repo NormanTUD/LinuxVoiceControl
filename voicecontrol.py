@@ -24,6 +24,8 @@ import re
 from colored import fg, bg, attr
 import secrets
 import zahlwort2num as w2n
+import urllib.parse
+import json
 
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
@@ -56,7 +58,7 @@ class BaseFeatures():
     def download_file_get_string (self, url):
         yellow_text(url)
         downloaded = urlopen(url)
-        yellow_text("Status-Code: " + str(downloaded.getcode()))
+        blue_text("Status-Code: " + str(downloaded.getcode()))
         output = downloaded.read()
         this_str = output.decode('utf-8')
         return this_str
@@ -65,6 +67,7 @@ class BaseFeatures():
         this_str = self.download_file_get_string(url)
         this_str = this_str.replace('"', '')
         this_str = this_str.replace("\n", '')
+        return this_str
 
     def random_element_from_array(self, array):
         return secrets.choice(array)
@@ -127,24 +130,66 @@ class Features():
         sys.exit(0)
 
     def get_temperature_tomorrow (self, place):
-        url = 'https://wttr.in/' + str(place) + '?format="%C"&lang=de'
+        url = 'https://wttr.in/' + urllib.parse.quote(str(place)) + '?format="%C"&lang=de'
         this_str = self.basefeatures.download_file_get_string_replace_quotes_and_newlines(url)
         return this_str
 
     def get_humidity_tomorrow (self, place):
-        url = 'https://wttr.in/' + str(place) + '?format="%h"&lang=de'
+        url = 'https://wttr.in/' + urllib.parse.quote(str(place)) + '?format="%h"&lang=de'
         this_str = self.basefeatures.download_file_get_string_replace_quotes_and_newlines(url)
         return this_str
 
-    def talk_weather_tomorrow (self, orig_place):
-        place = orig_place[0].upper() + orig_place[1:]
+    def get_wind_tomorrow (self, place):
+        url = 'https://wttr.in/' + urllib.parse.quote(str(place)) + '?format="%w"&lang=de'
+        this_str = self.basefeatures.download_file_get_string_replace_quotes_and_newlines(url)
+        return this_str
 
-        warmmorgen = self.get_temperature_tomorrow(place)
-        luftfeuchtemorgen = self.get_humidity_tomorrow(place)
-        if str(warmmorgen) == "None"  or str(luftfeuchtemorgen) == "None":
-            self.interact.talk("Keine Ahnung, irgendwas ist schiefgelaufen beim Holen der Wetterdaten")
+    def get_weather_json (self, place):
+        url = 'https://wttr.in/' + urllib.parse.quote(str(place)) + '?format=j1&lang=de'
+        this_str = self.basefeatures.download_file_get_string(url)
+        datastore = json.loads(this_str)
+        return datastore
+
+    def talk_current_weather (self, place):
+        datastore = self.get_weather_json(place)
+        current_feels_like_temp = datastore['current_condition'][0]["FeelsLikeC"]
+        current_humidity = datastore['current_condition'][0]["humidity"]
+        current_temp = datastore['current_condition'][0]["temp_C"]
+        current_weather_desc = datastore['current_condition'][0]["lang_de"][0]["value"]
+        current_windspeed = datastore['current_condition'][0]["windspeedKmph"]
+
+        temperature_string = ''
+        if current_feels_like_temp == current_temp:
+            temperature_string = "einer Temperatur von %s Grad" % (current_temp)
         else:
-            self.interact.talk("Morgen wird es " + str(warmmorgen) + " mit " + str(luftfeuchtemorgen) + " lufteuchtigkeit")
+            temperature_string = "einer realen Temperatur von %s Grad und einer gefühlten von %s Grad" % (current_temp, current_feels_like_temp)
+
+        weather_string = "In %s ist es %s bei %s. Die Windgeschwindigkeit ist %s km/h bei einer Luftfeuchtigkeit von %s Prozent" % (place, current_weather_desc, temperature_string, current_windspeed, current_humidity)
+
+        self.interact.talk(weather_string)
+
+    def talk_weather_tomorrow (self, place):
+        datastore = self.get_weather_json(place)
+        maxtemp = datastore['weather'][1]["maxtempC"]
+        mintemp = datastore['weather'][1]["mintempC"]
+
+        weather_status = []
+        hourly = datastore['weather'][1]["hourly"]
+        for item in hourly:
+            this_item = item['lang_de'][0]['value']
+            if not this_item in weather_status:
+                weather_status.append(this_item)
+
+        hourly_status = ""
+        if weather_status:
+            hourly_status = " erst "
+
+        hourly_status = hourly_status + ", dann ".join(weather_status)
+
+        weather_string = "In %s liegt die Temperatur morgen zwischen %s und %s Grad. Über den Tag verteilt wird es %s" % (place, mintemp, maxtemp, hourly_status)
+
+        self.interact.talk(weather_string)
+        
 
     def calculate(self, text):
         math_text = self.textreplacements.replace_in_formula_mode(text)
@@ -519,7 +564,8 @@ class AnalyzeAudio ():
             ".*ein(?:en)? witz": self.features.tell_joke,
             "^letztes wort löschen$": self.guitools.delete_last_word,
             "^spieler? radio (.*)$": {"fn": "self.features.play_radio", "param": "text"},
-            "^.*wetter morgen(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or 'Dresden'"},
+            "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or 'Dresden'"},
+            "^.*(?:(?:(?:gerade|jetzt)\s*wetter)|(?:wetter (?:gerade|jetzt)))(?: in (.*))?$": {"fn": "self.features.talk_current_weather", "param": "m.group(1) or 'Dresden'"},
             "^was (?:er)?gibt (.*)?$": {"fn": "self.features.calculate", "param": "m.group(1)"}
         }
 
