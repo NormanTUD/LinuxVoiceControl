@@ -203,6 +203,9 @@ class Interaction():
         os.system('pico2wave --lang de-DE --wave /tmp/Test.wav "' + str(something) + '" ; play /tmp/Test.wav; rm /tmp/Test.wav')
         self.vad_audio.stream.start_stream()
 
+    def can_you_hear_me(self):
+        self.talk("Ja, kann ich")
+
     def play_sound (self, path):
         self.vad_audio.stream.stop_stream()
         if os.path.isfile(path):
@@ -219,9 +222,18 @@ class GUITools():
     def __init__ (self, interact):
         self.interact = interact
 
+    def start_browser(self):
+        os.system("firefox")
+
     def toggle_volume(self):
         self.interact.talk("OK")
         os.system("amixer set Master toggle")
+
+    def volume_up (self):
+        pyautogui.hotkey('volumeup')
+
+    def volume_down (self):
+        pyautogui.hotkey('volumedown')
 
     def say_current_window(self):
         self.interact.talk(self.get_current_window())
@@ -246,6 +258,58 @@ class GUITools():
         x = Window.list()
         for wn in Window.list():
             self.interact.talk(wn.wm_name)
+
+    def close_tab(self):
+        pyautogui.hotkey('ctrl', 'w')
+
+    def previous_tab(self):
+        pyautogui.hotkey('ctrl', 'shift', 'tab')
+        time.sleep(1)
+        self.interact.talk(self.get_current_window())
+
+    def mark_and_delete_all(self):
+        pyautogui.hotkey('ctrl', 'a')
+        pyautogui.hotkey('del')
+
+    def repeat (self):
+        pyautogui.hotkey('ctrl', 'y')
+
+    def new_tab(self):
+        pyautogui.hotkey('ctrl', 't')
+
+    def new_window(self):
+        pyautogui.hotkey('ctrl', 'n')
+
+    def copy (self):
+        pyautogui.hotkey('ctrl', 'c')
+
+    def select_all(self):
+        pyautogui.hotkey('ctrl', 'a')
+
+    def undo (self):
+        pyautogui.hotkey('ctrl', 'z')
+
+    def cut(self):
+        pyautogui.hotkey('ctrl', 'x')
+
+    def delete(self):
+        pyautogui.hotkey('del')
+
+    def mark_current_line(self):
+        pyautogui.hotkey('home')
+        pyautogui.hotkey('shift', 'end')
+
+    def paste (self):
+        pyautogui.hotkey('ctrl', 'v')
+
+    def delete_last_word(self):
+        pyautogui.hotkey('ctrl', 'backspace')
+
+    def press_enter(self):
+        pyautogui.hotkey('enter')
+
+    def press_space(self):
+        pyautogui.hotkey('space')
 
 class Audio(object):
     """Streams raw audio from microphone. Data is received in a separate thread, and stored in a buffer, to be read from."""
@@ -465,68 +529,63 @@ def main(ARGS):
                     is_formel = False
                     interact.play_sound("bleep.wav")
                 elif text == 'letzter tab' or text == 'letzter ta'  or text == 'letzter tap':
-                    pyautogui.hotkey('ctrl', 'shift', 'tab')
-                    time.sleep(1)
-                    interact.talk(guitools.get_current_window())
+                    guitools.previous_tab()
                 elif "alle fenster" in text:
                     guitools.all_windows()
                 elif text == 'schließe tab' or text == 'schließe tap':
-                    pyautogui.hotkey('ctrl', 'w')
+                    guitools.close_tab()
                 elif text == 'neuer tab' or text == 'neuer tap':
-                    pyautogui.hotkey('ctrl', 't')
+                    guitools.new_tab()
                 elif text == 'neues fenster':
-                    pyautogui.hotkey('ctrl', 'n')
+                    guitools.new_window()
                 elif "ende" in text and "selbst" in text:
                     features.suicide()
                 elif text == 'lautlos' or text == 'wieder laut':
                     guitools.toggle_volume()
                 elif text == 'lauter':
-                    pyautogui.hotkey('volumeup')
+                    guitools.volume_up()
                 elif text == 'leiser':
-                    pyautogui.hotkey('volumedown')
+                    guitools.volume_down()
                 elif text == 'kannst du mich hören':
-                    interact.talk("Ja, kann ich")
+                    interact.can_you_hear_me()
                 elif text == 'abspielen' or text == 'spiel ab':
-                    pyautogui.hotkey('space')
+                    guitools.press_space()
                 elif text == 'wie wird das wetter morgen' or ("wetter" in text and "morgen" in text):
                     features.talk_weather_tomorrow("Dresden")
                 elif text == 'starte internet' or text == 'state internet':
-                    os.system("firefox")
+                    guitools.start_browser()
                 elif text == 'alles markieren':
-                    pyautogui.hotkey('ctrl', 'a')
+                    guitools.select_all()
                 elif text == 'eingabetaste' or text == 'eingabe taster' or text == 'ein abtaster' or text == 'eingabe taste':
-                    pyautogui.hotkey('enter')
+                    guitools.press_enter()
                 elif text == 'alles löschen':
-                    pyautogui.hotkey('ctrl', 'a')
-                    pyautogui.hotkey('del')
+                    guitools.mark_and_delete_all()
                 elif 'wie geht es dir' == text:
                     features.how_are_you()
                 elif 'spiele radio' in text or 'spieler radio' in text:
-                    starte_schreiben = False
                     features.play_radio(text)
                 elif text == 'löschen':
-                    pyautogui.hotkey('del')
+                    guitools.delete()
                 elif 'rückgängig' in text and 'letzte' in text and 'aktion' in text:
-                    pyautogui.hotkey('ctrl', 'z')
+                    guitools.undo()
                 elif text == 'aktuelle zeile markieren':
-                    pyautogui.hotkey('home')
-                    pyautogui.hotkey('shift', 'end')
+                    guitools.mark_current_line()
                 elif text == 'aktuelle zeile als gleichung sehen und lösen' or "ausrechnen" in text:
                     features.solve_equation()
                 elif text == 'wiederholen':
-                    pyautogui.hotkey('ctrl', 'y')
+                    guitools.repeat()
                 elif text == 'kopieren':
-                    pyautogui.hotkey('ctrl', 'c')
+                    guitools.copy()
                 elif text == 'einfügen':
-                    pyautogui.hotkey('ctrl', 'v')
+                    guitools.paste()
                 elif 'ein' in text and 'witz' in text:
                     features.tell_joke()
                 elif text == 'alles vorlesen':
                     features.read_aloud()
                 elif text == 'ausschneiden':
-                    pyautogui.hotkey('ctrl', 'x')
+                    guitools.cut()
                 elif text == 'letztes wort löschen' or text == 'letztes wort laschen' or text == 'letztes wort lerchen':
-                    pyautogui.hotkey('ctrl', 'backspace')
+                    guitools.delete_last_word()
                 elif starte_schreiben:
                     if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
                         print("Es wird nicht mehr mitgeschrieben")
