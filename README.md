@@ -23,6 +23,15 @@ When cloning, you need git lfs or you won't get the full repo!
 - 'neue zeile' (fügt eine neue Zeile ein'
 - 'leerzeichen' (fügt ein Leerzeichen ein)
 - 'wechsel fenster' (drücke alt+tab und sage an, welches fenster aktuell auf ist)
+... und noch einiges Mehr!
+
+## Installation
+
+> sudo apt install python3 python3-pip libasound2-dev libspeexdsp-dev libttspico-utils play qalc xsel sed amixer
+
+> sudo pip3 install secrets colored wmctrl pyperclip pyautogui scipy halo webrtcvad wave pyaudio numpy deepspeech==0.7.1
+
+(Yet untested, will be updated shortly)
 
 ## !!!WORK IN PROGRESS!!!
 
