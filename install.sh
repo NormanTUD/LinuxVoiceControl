@@ -10,4 +10,4 @@ echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
 sudo apt install -y libttspico-utils
 sudo pip3 install pyopenssl
-sudo pip3 install secrets colored wmctrl pyperclip pyautogui scipy halo webrtcvad wave pyaudio numpy deepspeech==0.7.1 zahlwort2num
+sudo pip3 install secrets colored wmctrl pyperclip pyautogui scipy halo webrtcvad wave pyaudio numpy deepspeech==0.7.1 zahlwort2num commands
