@@ -23,6 +23,7 @@ import os.path
 import re
 from colored import fg, bg, attr
 import secrets
+import zahlwort2num as w2n
 
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
@@ -73,10 +74,11 @@ class BaseFeatures():
         os.system(command)
 
 class Features():
-    def __init__ (self, interact, controlkeyboard):
+    def __init__ (self, interact, controlkeyboard, textreplacements):
         self.interact = interact
         self.basefeatures = BaseFeatures()
         self.controlkeyboard = controlkeyboard
+        self.textreplacements = textreplacements
         self.radio_streams = {
             "(?:radio )?eins": {"link": "https://www.radioeins.de/live.m3u", "name": "Radio Eins"},
             "sachsen( radio)?": {"link": "http://avw.mdr.de/streams/284280-0_mp3_high.m3u", "name": "Sachsenradio" },
@@ -144,6 +146,21 @@ class Features():
         else:
             self.interact.talk("Morgen wird es " + str(warmmorgen) + " mit " + str(luftfeuchtemorgen) + " lufteuchtigkeit")
 
+    def calculate(self, text):
+        math_text = self.textreplacements.replace_in_formula_mode(text)
+
+        m = REMatcher(math_text)
+        if m.match("^\d+((\+|-|\*|/)\d+)$"):
+            self.controlkeyboard.copy(math_text)
+            self.interact.vad_audio.stream.stop_stream()
+            self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
+            self.interact.talk(math_text + " gleich ")
+            self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /g" | sed -e "s/-/ minus /g" | sed -e "s/\/ durch //g" | sed -e "s/\\*/ mal /" | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
+            self.interact.vad_audio.stream.start_stream()
+        else:
+            red_text("Erkannt: " + str(math_text))
+            self.interact.talk("Diese Rechnung ist mir zu kompliziert oder ich habe sie nicht richtig verstanden");
+
     def solve_equation (self):
         self.controlkeyboard.hotkey('home')
         self.controlkeyboard.hotkey('shift', 'end')
@@ -182,6 +199,16 @@ class Features():
 
 class TextReplacements():
     def replace_in_text_mode (self, text):
+        words = text.split(" ")
+        words_new = []
+        for word in words:
+            try:
+                word = w2n.convert(word)
+            except Exception as e:
+                pass
+            words_new.append(str(word))
+
+        text = ' '.join(words_new)
         text = text.replace("komma", ",")
         text = text.replace("ausrufezeichen", "!")
         text = text.replace("punkt", ".")
@@ -204,6 +231,38 @@ class TextReplacements():
         return text
 
     def replace_in_formula_mode(self, text):
+        text = text.replace("hundert", "100")
+        text = text.replace("hundert", "100")
+        text = text.replace("ein hundert", "100")
+        text = text.replace("zweihundert", "200")
+        text = text.replace("zwei hundert", "200")
+        text = text.replace("drei hundert", "300")
+        text = text.replace("dreihundert", "300")
+        text = text.replace("vierhundert", "400")
+        text = text.replace("vier hundert", "400")
+        text = text.replace("fünfhundert", "500")
+        text = text.replace("fünf hundert", "500")
+        text = text.replace("sechs hundert", "600")
+        text = text.replace("sechshundert", "600")
+        text = text.replace("sieben hundert", "700")
+        text = text.replace("siebenhundert", "700")
+        text = text.replace("acht hundert", "800")
+        text = text.replace("achthundert", "800")
+        text = text.replace("neun hundert", "900")
+        text = text.replace("neunhundert", "900")
+
+        words = text.split(" ")
+        words_new = []
+        for word in words:
+            try:
+                word = w2n.convert(word)
+            except Exception as e:
+                pass
+            words_new.append(str(word))
+
+        text = ' '.join(words_new)
+
+
         text = text.replace("null", "0")
         text = text.replace("eins", "1")
         text = text.replace("zwei", "2")
@@ -214,6 +273,17 @@ class TextReplacements():
         text = text.replace("sieben", "7")
         text = text.replace("acht", "8")
         text = text.replace("neun", "9")
+        text = text.replace("zehn", "10")
+        text = text.replace("elf", "11")
+        text = text.replace("zwölf", "12")
+        text = text.replace("dreizehn", "13")
+        text = text.replace("vierzehn", "14")
+        text = text.replace("fünfzehn", "15")
+        text = text.replace("sechszehn", "16")
+        text = text.replace("siebzehn", "16")
+        text = text.replace("achtzehn", "16")
+        text = text.replace("neunzehn", "16")
+
         text = text.replace("komma", ",")
         text = text.replace("plus", "+")
         text = text.replace("wurzel", "sqrt ")
@@ -240,6 +310,8 @@ class TextReplacements():
         text = text.replace("klammerzu", ")")
         text = text.replace("ausrufezeichen", "!")
         text = text.replace("fakultät", "!")
+
+
         return text
 
 class Interaction():
@@ -267,6 +339,7 @@ class Interaction():
     def do_you_hear_me (self):
         self.talk("Ja, ich höre dich")
 
+
     def play_sound (self, path):
         self.vad_audio.stream.stop_stream()
         if os.path.isfile(path):
@@ -276,13 +349,17 @@ class Interaction():
         self.vad_audio.stream.start_stream()
 
     def type_unicode(self, word):
-        pyperclip.copy(word)
+        self.controlkeyboard.copy(word)
         if self.consolemode:
             self.controlkeyboard.hotkey("ctrl", "shift", "v")
         else:
             self.controlkeyboard.hotkey("ctrl", "v")
 
 class ControlKeyboard():
+    def copy(self, word):
+        yellow_text("Copying `" + str(word) + "` to clipboard")
+        pyperclip.copy(word)
+
     def hotkey(self, *argv):
         for arg in argv:
             yellow_text("Pressing `" + str(arg) + "`")
@@ -442,7 +519,8 @@ class AnalyzeAudio ():
             ".*ein(?:en)? witz": self.features.tell_joke,
             "^letztes wort löschen$": self.guitools.delete_last_word,
             "^spieler? radio (.*)$": {"fn": "self.features.play_radio", "param": "text"},
-            "^.*wetter morgen(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or 'Dresden'"}
+            "^.*wetter morgen(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or 'Dresden'"},
+            "^was (?:er)?gibt (.*)?$": {"fn": "self.features.calculate", "param": "m.group(1)"}
         }
 
     def do_what_i_just_said(self, text):
@@ -629,7 +707,7 @@ def main(ARGS):
     controlkeyboard = ControlKeyboard()
     interact = Interaction(vad_audio, controlkeyboard)
     textreplacements = TextReplacements()
-    features = Features(interact, controlkeyboard)
+    features = Features(interact, controlkeyboard, textreplacements)
     guitools = GUITools(interact, controlkeyboard)
 
     analyzeaudio = AnalyzeAudio(guitools, interact, features)
