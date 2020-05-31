@@ -93,8 +93,13 @@ class Features():
 
     def read_wikipedia_article(self, article):
         wiki_wiki = wikipediaapi.Wikipedia('de')
-        page_py = wiki_wiki.page(article)
+        page_py = wiki_wiki.page(urllib.parse.quote(article))
         summary = page_py.summary
+
+        summary = summary.replace("[", "")
+        summary = summary.replace("]", "")
+
+        re.sub(r'\(.*?\)', r'', summary)
 
         self.interact.talk(summary)
 
@@ -406,9 +411,10 @@ class Interaction():
 
     def talk(self, something):
         yellow_text(str(something))
-        self.vad_audio.stream.stop_stream()
-        self.basefeatures.run_system_command('pico2wave --lang de-DE --wave /tmp/Test.wav "' + str(something) + '" ; play /tmp/Test.wav; rm /tmp/Test.wav')
-        self.vad_audio.stream.start_stream()
+        if not something == "":
+            self.vad_audio.stream.stop_stream()
+            self.basefeatures.run_system_command('pico2wave --lang de-DE --wave /tmp/Test.wav "' + str(something) + '" ; play /tmp/Test.wav; rm /tmp/Test.wav')
+            self.vad_audio.stream.start_stream()
 
     def can_you_hear_me(self):
         self.talk("Ja, kann ich")
