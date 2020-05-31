@@ -150,7 +150,7 @@ class Features():
         math_text = self.textreplacements.replace_in_formula_mode(text)
 
         m = REMatcher(math_text)
-        if m.match("^\d+((\+|-|\*|/)\d+)$"):
+        if m.match("^\d+(?:,\d+)?((\+|-|\*|/)\d+(?:,\d+)?)$"):
             self.controlkeyboard.copy(math_text)
             self.interact.vad_audio.stream.stop_stream()
             self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
