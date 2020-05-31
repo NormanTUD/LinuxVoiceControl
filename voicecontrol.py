@@ -88,6 +88,12 @@ class Features():
             "deutschland\s*funk": {"link": "https://st01.sslstream.dlf.de/dlf/01/64/mp3/stream.mp3", "name": "Deutschlandfunk" }
         }
 
+
+    def bitcoin_price (self):
+        self.interact.vad_audio.stream.stop_stream()
+        self.basefeatures.run_system_command('echo "Ein Bitcoin = $(curl -s https://api.coindesk.com/v1/bpi/currentprice/usd.json | grep -o \'rate\\":\\"[^\\"]*\' | cut -d\\" -f3 | sed -e \"s/\..*//\") US Dollar" | sed -e "s/\,//" |  pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
+        self.interact.vad_audio.stream.start_stream()
+
     def grenzwert(self):
         self.interact.talk("Seh ich aus wie WolframAlpha? Diese Aufgabe ist mir viel zu schwer")
 
@@ -585,6 +591,7 @@ class AnalyzeAudio ():
             ".*ein(?:en)? witz": self.features.tell_joke,
             "^letztes wort löschen$": self.guitools.delete_last_word,
             "^spieler? radio (.*)$": {"fn": "self.features.play_radio", "param": "text"},
+            "^(.*)(?:(?:aktuell.*bitcoin)|(?:bitcoin\s*preis))(.*)$": self.features.bitcoin_price,
             "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_the_day_after_tomorrow", "param": "m.group(1) or 'Dresden'"},
             "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or 'Dresden'"},
             "^.*(?:(?:(?:gerade|jetzt)\s*wetter)|(?:wetter (?:gerade|jetzt)))(?: in (.*))?$": {"fn": "self.features.talk_current_weather", "param": "m.group(1) or 'Dresden'"},
