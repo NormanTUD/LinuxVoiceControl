@@ -320,6 +320,9 @@ class GUITools():
     def new_window(self):
         self.controlkeyboard.hotkey('ctrl', 'n')
 
+    def close_window(self):
+        self.controlkeyboard.hotkey('alt', 'f4')
+
     def copy (self):
         self.controlkeyboard.hotkey('ctrl', 'c')
 
@@ -368,11 +371,12 @@ class AnalyzeAudio ():
             "^star?te internet$": self.guitools.start_browser,
             "^alles vorlesen$": self.features.read_aloud,
             "^löschen$": self.guitools.delete,
-            "^aktuelle zeile (?:auswählen|markieren)$": self.guitools.select_current_line,
-            "^aktuelle zeile löschen$": self.guitools.delete_current_line,
+            "^(?:aktuelle|dieser?) zeile (?:auswählen|markieren)$": self.guitools.select_current_line,
+            "^(?:dieser?|aktuelle) zeile löschen$": self.guitools.delete_current_line,
             "^aus\s*rechnen$": self.features.solve_equation,
             "^wieder\s*holen$": self.guitools.repeat,
             "^kopieren$": self.guitools.copy,
+            "^schließe (?:fenster|elster|fester)$": self.guitools.close_window,
             "^einfügen$": self.guitools.paste,
             "^aus\s*schneiden$": self.guitools.cut,
             "^alles (markieren|auswählen)$": self.guitools.select_all,
