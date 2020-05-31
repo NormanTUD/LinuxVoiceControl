@@ -26,6 +26,7 @@ import secrets
 import zahlwort2num as w2n
 import urllib.parse
 import json
+import wikipediaapi
 
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
@@ -89,6 +90,13 @@ class Features():
             "deutschland\s*funk": {"link": "https://st01.sslstream.dlf.de/dlf/01/64/mp3/stream.mp3", "name": "Deutschlandfunk" }
         }
 
+
+    def read_wikipedia_article(self, article):
+        wiki_wiki = wikipediaapi.Wikipedia('de')
+        page_py = wiki_wiki.page(article)
+        summary = page_py.summary
+
+        self.interact.talk(summary)
 
     def bitcoin_price (self):
         self.interact.vad_audio.stream.stop_stream()
@@ -592,6 +600,7 @@ class AnalyzeAudio ():
             "^letztes wort löschen$": self.guitools.delete_last_word,
             "^(?:spiel(?:er)?|[mn]ach) radio (.*)(\s+an)?$": {"fn": "self.features.play_radio", "param": "text"},
             "^(.*)(?:(?:aktuell.*bitcoin)|(?:bitcoin\s*preis))(.*)$": self.features.bitcoin_price,
+            "^wikipedia\s+(.*)$": {"fn": "self.features.read_wikipedia_article", "param": "m.group(1) or 'Linux'"},
             "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_the_day_after_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
             "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
             "^.*(?:(?:(?:gerade|jetzt)\s*wetter)|(?:wetter (?:gerade|jetzt)))(?: in (.*))?$": {"fn": "self.features.talk_current_weather", "param": "m.group(1) or '" + self.default_city+ "'"},
