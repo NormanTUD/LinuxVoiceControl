@@ -35,6 +35,9 @@ def red_text(string):
 def yellow_text(string):
     print(str(fg('white')) + str(bg('yellow')) + str(string) + str(attr('reset')))
 
+def blue_text(string):
+    print(str(fg('white')) + str(bg('blue')) + str(string) + str(attr('reset')))
+
 logging.basicConfig(level=20)
 
 class REMatcher(object):
@@ -65,6 +68,10 @@ class BaseFeatures():
     def random_element_from_array(self, array):
         return secrets.choice(array)
 
+    def run_system_command(self, command):
+        blue_text(command)
+        os.system(command)
+
 class Features():
     def __init__ (self, interact, controlkeyboard):
         self.interact = interact
@@ -91,7 +98,7 @@ class Features():
             radio_stream = self.radio_streams[radioname]
             self.interact.talk("Ich spiele " + str(radioname) + " ab, drücke S T R G C um abzubrechen")
             self.interact.vad_audio.stream.stop_stream()
-            os.system("play " + str(radio_stream))
+            self.basefeatures.run_system_command("play " + str(radio_stream))
             self.interact.vad_audio.stream.start_stream()
         else:
             self.interact.talk("Das Radio mit dem Namen " + str(radioname) + " ist mir nicht bekannt")
@@ -134,8 +141,8 @@ class Features():
         self.controlkeyboard.hotkey('shift', 'end')
         self.controlkeyboard.hotkey('ctrl', 'c')
         self.interact.vad_audio.stream.stop_stream()
-        os.system('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
-        os.system('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /" | sed -e "s/-/ minus /" | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
+        self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
+        self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /" | sed -e "s/-/ minus /" | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
         self.interact.vad_audio.stream.start_stream()
 
     def read_aloud(self):
@@ -143,7 +150,7 @@ class Features():
         self.controlkeyboard.hotkey('ctrl', 'c')
 
         self.interact.vad_audio.stream.stop_stream()
-        os.system('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
+        self.basefeatures.run_system_command('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
         self.interact.vad_audio.stream.start_stream()
 
     def tell_joke(self):
@@ -230,6 +237,7 @@ class Interaction():
         self.vad_audio = vad_audio
         self.controlkeyboard = controlkeyboard
         self.consolemode = False
+        self.basefeatures = BaseFeatures()
 
     def is_console(self):
         self.consolemode = True
@@ -240,7 +248,7 @@ class Interaction():
     def talk(self, something):
         yellow_text(str(something))
         self.vad_audio.stream.stop_stream()
-        os.system('pico2wave --lang de-DE --wave /tmp/Test.wav "' + str(something) + '" ; play /tmp/Test.wav; rm /tmp/Test.wav')
+        self.basefeatures.run_system_command('pico2wave --lang de-DE --wave /tmp/Test.wav "' + str(something) + '" ; play /tmp/Test.wav; rm /tmp/Test.wav')
         self.vad_audio.stream.start_stream()
 
     def can_you_hear_me(self):
@@ -249,7 +257,7 @@ class Interaction():
     def play_sound (self, path):
         self.vad_audio.stream.stop_stream()
         if os.path.isfile(path):
-            os.system("play " + path)
+            self.basefeatures.run_system_command("play " + path)
         else:
             self.talk("Die Datei " + str(path) + " konnte nicht gefunden werden!")
         self.vad_audio.stream.start_stream()
@@ -272,6 +280,7 @@ class GUITools():
         self.interact = interact
         self.controlkeyboard = controlkeyboard
         self.consolemode = False
+        self.basefeatures = BaseFeatures()
 
     def is_console(self):
         self.consolemode = True
@@ -280,11 +289,11 @@ class GUITools():
         self.consolemode = False
 
     def start_browser(self):
-        os.system("firefox")
+        self.basefeatures.run_system_command("firefox")
 
     def toggle_volume(self):
         self.interact.talk("OK")
-        os.system("amixer set Master toggle")
+        self.basefeatures.run_system_command("amixer set Master toggle")
 
     def volume_up (self):
         self.controlkeyboard.hotkey('volumeup')
