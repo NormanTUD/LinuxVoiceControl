@@ -384,7 +384,7 @@ class AnalyzeAudio ():
             "^letzter ta[bp]$": self.guitools.previous_tab,
             "^neues (?:fenster|elster)$": self.guitools.new_window,
             ".*ende.*dich.*selbst.*": self.features.suicide,
-            "^(?:ab\s*spielen|spiele ab)$": self.guitools.press_space,
+            "^(?:ab\s*spielen|spiele ab|pausieren)$": self.guitools.press_space,
             "^(?:lautlos|wieder laut)$": self.guitools.toggle_volume,
             "^rückgängig$": self.guitools.undo,
             ".*ein(?:en)? witz": self.features.tell_joke,
