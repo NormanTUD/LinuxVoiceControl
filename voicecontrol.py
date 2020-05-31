@@ -229,6 +229,13 @@ class Interaction():
     def __init__ (self, vad_audio, controlkeyboard):
         self.vad_audio = vad_audio
         self.controlkeyboard = controlkeyboard
+        self.consolemode = False
+
+    def is_console(self):
+        self.consolemode = True
+
+    def is_not_console(self):
+        self.consolemode = False
 
     def talk(self, something):
         yellow_text(str(something))
@@ -249,7 +256,10 @@ class Interaction():
 
     def type_unicode(self, word):
         pyperclip.copy(word)
-        self.controlkeyboard.hotkey("ctrl", "v")
+        if self.consolemode:
+            self.controlkeyboard.hotkey("ctrl", "shift", "v")
+        else:
+            self.controlkeyboard.hotkey("ctrl", "v")
 
 class ControlKeyboard():
     def hotkey(self, *argv):
@@ -261,6 +271,13 @@ class GUITools():
     def __init__ (self, interact, controlkeyboard):
         self.interact = interact
         self.controlkeyboard = controlkeyboard
+        self.consolemode = False
+
+    def is_console(self):
+        self.consolemode = True
+
+    def is_not_console(self):
+        self.consolemode = False
 
     def start_browser(self):
         os.system("firefox")
@@ -347,7 +364,10 @@ class GUITools():
         self.delete()
 
     def paste (self):
-        self.controlkeyboard.hotkey('ctrl', 'v')
+        if self.consolemode:
+            self.controlkeyboard.hotkey('ctrl', 'shift', 'v')
+        else:
+            self.controlkeyboard.hotkey('ctrl', 'v')
 
     def delete_last_word(self):
         self.controlkeyboard.hotkey('ctrl', 'backspace')
@@ -631,6 +651,14 @@ def main(ARGS):
                         interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
                         is_formel = True
                         interact.play_sound("bleep.wav")
+                    elif "konsole" in text and not "nicht" in text and not "deaktivieren" in text:
+                        guitools.is_console()
+                        interact.is_console()
+                        interact.talk("Konsolenmodus aktiviert")
+                    elif ("nicht" in text and "konsole" in text) or ("konsole" in text and "deaktivieren" in text):
+                        guitools.is_not_console()
+                        interact.is_not_console()
+                        interact.talk("Konsolenmodus de-aktiviert")
                     elif is_formel and 'text eingeben' in text:
                         interact.talk("Ab jetzt wieder Text")
                         is_formel = False
