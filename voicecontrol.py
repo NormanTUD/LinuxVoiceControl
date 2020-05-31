@@ -344,6 +344,7 @@ class TextReplacements():
         text = text.replace("zwei", "2")
         text = text.replace("drei", "3")
         text = text.replace("vier", "4")
+        text = text.replace("von", "5")
         text = text.replace("fünf", "5")
         text = text.replace("sechs", "6")
         text = text.replace("sieben", "7")
