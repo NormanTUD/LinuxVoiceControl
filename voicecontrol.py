@@ -646,6 +646,7 @@ def main(ARGS):
     wav_data = bytearray()
     starte_schreiben = False
     is_formel = False
+    repeat_after_me = False
 
     for frame in frames:
         if frame is not None:
@@ -667,44 +668,51 @@ def main(ARGS):
             if not text == "":
                 green_text("Recognized: >>>%s<<<" % text)
 
-                done_something = analyzeaudio.do_what_i_just_said(text)
+                if repeat_after_me:
+                    interact.talk(text)
+                    repeat_after_me = False
+                else:
+                    done_something = analyzeaudio.do_what_i_just_said(text)
 
-                if not done_something:
-                    if 'formel eingeben' in text or 'formel ein geben' in text or 'formell eingeben' in text or 'formell ein geben' in text:
-                        interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
-                        is_formel = True
-                        interact.play_sound("bleep.wav")
-                    elif "konsole" in text and not "nicht" in text and not "deaktivieren" in text:
-                        guitools.is_console()
-                        interact.is_console()
-                        interact.talk("Konsolenmodus aktiviert")
-                    elif ("nicht" in text and "konsole" in text) or ("konsole" in text and "deaktivieren" in text):
-                        guitools.is_not_console()
-                        interact.is_not_console()
-                        interact.talk("Konsolenmodus de-aktiviert")
-                    elif is_formel and 'text eingeben' in text:
-                        interact.talk("Ab jetzt wieder Text")
-                        is_formel = False
-                        interact.play_sound("bleep.wav")
-                    elif starte_schreiben:
-                        if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
-                            print("Es wird nicht mehr mitgeschrieben")
-                            interact.play_sound("line_end.wav")
-                            starte_schreiben = False
-                        elif is_formel:
-                            text = textreplacements.replace_in_formula_mode(text)
-                            interact.type_unicode(text)
-                        elif text:
-                            text = text + " "
-                            text = textreplacements.replace_in_text_mode(text)
-                            interact.type_unicode(text)
-                    else:
-                        if text == "mitschreiben" or text == "mit schreiben":
-                            starte_schreiben = True
-                            print("Starte schreiben")
+                    if not done_something:
+                        if 'formel eingeben' in text or 'formel ein geben' in text or 'formell eingeben' in text or 'formell ein geben' in text:
+                            interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
+                            is_formel = True
                             interact.play_sound("bleep.wav")
+                        elif "konsole" in text and not "nicht" in text and not "deaktivieren" in text:
+                            guitools.is_console()
+                            interact.is_console()
+                            interact.talk("Konsolenmodus aktiviert")
+                        elif ("nicht" in text and "konsole" in text) or ("konsole" in text and "deaktivieren" in text):
+                            guitools.is_not_console()
+                            interact.is_not_console()
+                            interact.talk("Konsolenmodus de-aktiviert")
+                        elif "wiederhole was ich sage" in text:
+                            interact.talk("OK")
+                            repeat_after_me = True
+                        elif is_formel and 'text eingeben' in text:
+                            interact.talk("Ab jetzt wieder Text")
+                            is_formel = False
+                            interact.play_sound("bleep.wav")
+                        elif starte_schreiben:
+                            if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
+                                print("Es wird nicht mehr mitgeschrieben")
+                                interact.play_sound("line_end.wav")
+                                starte_schreiben = False
+                            elif is_formel:
+                                text = textreplacements.replace_in_formula_mode(text)
+                                interact.type_unicode(text)
+                            elif text:
+                                text = text + " "
+                                text = textreplacements.replace_in_text_mode(text)
+                                interact.type_unicode(text)
                         else:
-                            print("Sage 'mitschreiben', damit mitgeschrieben wird")
+                            if text == "mitschreiben" or text == "mit schreiben":
+                                starte_schreiben = True
+                                print("Starte schreiben")
+                                interact.play_sound("bleep.wav")
+                            else:
+                                print("Sage 'mitschreiben', damit mitgeschrieben wird")
 
             stream_context = model.createStream()
 
