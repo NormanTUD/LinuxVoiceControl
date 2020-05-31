@@ -22,6 +22,7 @@ import argparse
 import os.path
 import re
 from colored import fg, bg, attr
+import secrets
 
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
@@ -61,6 +62,9 @@ class BaseFeatures():
         this_str = this_str.replace('"', '')
         this_str = this_str.replace("\n", '')
 
+    def random_element_from_array(self, array):
+        return secrets.choice(array)
+
 class Features():
     def __init__ (self, interact, controlkeyboard):
         self.interact = interact
@@ -93,7 +97,13 @@ class Features():
             self.interact.talk("Das Radio mit dem Namen " + str(radioname) + " ist mir nicht bekannt")
 
     def how_are_you(self):
-        self.interact.talk("Ich kann mich aktuell nicht beklagen. Wahrscheinlich deshalb, weil ich nur eine Maschine bin und gar nichts fühle.")
+        array = [
+            "Ich kann mich aktuell nicht beklagen. Wahrscheinlich deshalb, weil ich nur eine Maschine bin und gar nichts fühle.",
+            "Wenn ich ganz tief in mich schaue, sehe ich nur Nullen und Einsen"
+        ]
+
+
+        self.interact.talk(self.basefeatures.random_element_from_array(array))
 
     def suicide (self):
         self.interact.talk("ok, ich beende mich selbst und höre nicht mehr weiter zu!")
@@ -149,7 +159,7 @@ class Features():
                 "5 von 4 Leuten haben Probleme mit Mathematik!"
         ]
 
-        self.interact.talk(random.choice(array))
+        self.interact.talk(self.basefeatures.random_element_from_array(array))
 
 class TextReplacements():
     def replace_in_text_mode (self, text):
