@@ -103,7 +103,7 @@ class Features():
 
         m = REMatcher(text)
 
-        if m.match(r"spiel(?:er)? radio (.+)"):
+        if m.match(r"(?:spiel(?:er)?|[nm]ach) radio (.+)(\s+an)?"):
             radioname = m.group(1)
 
         radio_stream = None
@@ -258,19 +258,19 @@ class Features():
 
     def tell_joke(self):
         array = [
-                "Was ist weiß und steht hinter einem Baum? Eine scheue Milch",
-                "Gott sprach: Es werde Licht! Tschack Norris antwortete! Sag bitte!",
-                "Kommt ein Wektor zur Drogenberatung: Hilfe, ich bin line ar abhängig.",
-                "Was macht ein Mathematiker im Garten? Wurzeln ziehen.",
-                "Mathematiker sterben nie! sie verlieren nur einige ihrer Funktionen.",
-                "Wie viele Informatiker braucht man, um eine Glühbirne zu wechseln? Keinen, das ist ein Hardwärproblem!",
-                "Linux wird nie das meistinstallierte Betriebssystem sein, wenn man bedenkt, wie oft man Windows neu installieren muss!",
-                "Wie viele Glühbirnen braucht man, um eine Glühbirne zu wechseln? Genau zwei, die Alte und die Neue.",
-                "5 von 4 Leuten haben Probleme mit Mathematik!",
-                "Sagt ein Mathestudent zum Kommilitonen: Ich habe gehört, die Ehe des Professors soll sehr unglücklich sein! Meint der andere: Das wundert mich nicht. Er ist Mathematiker, und sie unberechenbar.",
-                "Was ist die Lieblingsbeschäftigung von Bits und Bytes? Busfahren.",
-                "Der kürzeste Programmiererwitz: Gleich bin ich fertig!",
-                "Ein Informatiker schiebt einen Kinderwagen durch den Park. Kommt ein älteres Ehepaar und fragt: Junge oder Mädchen? Da sagt der Informatiker: Richtig!"
+            "Was ist weiß und steht hinter einem Baum? Eine scheue Milch",
+            "Gott sprach: Es werde Licht! Tschack Norris antwortete! Sag bitte!",
+            "Kommt ein Wektor zur Drogenberatung: Hilfe, ich bin line ar abhängig.",
+            "Was macht ein Mathematiker im Garten? Wurzeln ziehen.",
+            "Mathematiker sterben nie! sie verlieren nur einige ihrer Funktionen.",
+            "Wie viele Informatiker braucht man, um eine Glühbirne zu wechseln? Keinen, das ist ein Hardwärproblem!",
+            "Linux wird nie das meistinstallierte Betriebssystem sein, wenn man bedenkt, wie oft man Windows neu installieren muss!",
+            "Wie viele Glühbirnen braucht man, um eine Glühbirne zu wechseln? Genau zwei, die Alte und die Neue.",
+            "5 von 4 Leuten haben Probleme mit Mathematik!",
+            "Sagt ein Mathestudent zum Kommilitonen: Ich habe gehört, die Ehe des Professors soll sehr unglücklich sein! Meint der andere: Das wundert mich nicht. Er ist Mathematiker, und sie unberechenbar.",
+            "Was ist die Lieblingsbeschäftigung von Bits und Bytes? Busfahren.",
+            "Der kürzeste Programmiererwitz: Gleich bin ich fertig!",
+            "Ein Informatiker schiebt einen Kinderwagen durch den Park. Kommt ein älteres Ehepaar und fragt: Junge oder Mädchen? Da sagt der Informatiker: Richtig!"
         ]
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
@@ -590,7 +590,7 @@ class AnalyzeAudio ():
             "^rückgängig$": self.guitools.undo,
             ".*ein(?:en)? witz": self.features.tell_joke,
             "^letztes wort löschen$": self.guitools.delete_last_word,
-            "^spiel(?:er)? radio (.*)$": {"fn": "self.features.play_radio", "param": "text"},
+            "^(?:spiel(?:er)?|[mn]ach) radio (.*)(\s+an)?$": {"fn": "self.features.play_radio", "param": "text"},
             "^(.*)(?:(?:aktuell.*bitcoin)|(?:bitcoin\s*preis))(.*)$": self.features.bitcoin_price,
             "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_the_day_after_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
             "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
