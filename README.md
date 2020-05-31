@@ -27,7 +27,7 @@ When cloning, you need git lfs or you won't get the full repo!
 
 ## Installation
 
-> sudo apt install python3 python3-pip libasound2-dev libspeexdsp-dev libttspico-utils play qalc xsel sed amixer
+> sudo apt install python3 python3-pip libasound2-dev libspeexdsp-dev libttspico-utils qalc xsel sed
 
 > sudo pip3 install secrets colored wmctrl pyperclip pyautogui scipy halo webrtcvad wave pyaudio numpy deepspeech==0.7.1 zahlwort2num
 
