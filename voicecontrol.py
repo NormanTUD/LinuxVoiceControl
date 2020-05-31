@@ -271,15 +271,6 @@ class Features():
 
 class TextReplacements():
     def replace_in_text_mode (self, text):
-        words = text.split(" ")
-        words_new = []
-        for word in words:
-            try:
-                word = w2n.convert(word)
-            except Exception as e:
-                pass
-            words_new.append(str(word))
-
         text = ' '.join(words_new)
         text = text.replace("komma", ",")
         text = text.replace("ausrufezeichen", "!")
