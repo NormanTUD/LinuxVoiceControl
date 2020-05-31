@@ -51,9 +51,10 @@ class BaseFeatures():
         this_str = this_str.replace("\n", '')
 
 class Features():
-    def __init__ (self, interact):
+    def __init__ (self, interact, controlkeyboard):
         self.interact = interact
         self.basefeatures = BaseFeatures()
+        self.controlkeyboard = controlkeyboard
         self.radio_streams = {
             "radio eins": "https://www.radioeins.de/live.m3u",
             "sachsen radio": "http://avw.mdr.de/streams/284280-0_mp3_high.m3u"
@@ -102,17 +103,17 @@ class Features():
             self.interact.talk("Morgen wird es " + str(warmmorgen) + " mit " + str(luftfeuchtemorgen) + " lufteuchtigkeit")
 
     def solve_equation (self):
-        pyautogui.hotkey('home')
-        pyautogui.hotkey('shift', 'end')
-        pyautogui.hotkey('ctrl', 'c')
+        self.controlkeyboard.hotkey('home')
+        self.controlkeyboard.hotkey('shift', 'end')
+        self.controlkeyboard.hotkey('ctrl', 'c')
         self.interact.vad_audio.stream.stop_stream()
         os.system('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
         os.system('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /" | sed -e "s/-/ minus /" | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
         self.interact.vad_audio.stream.start_stream()
 
     def read_aloud(self):
-        pyautogui.hotkey('ctrl', 'a')
-        pyautogui.hotkey('ctrl', 'c')
+        self.controlkeyboard.hotkey('ctrl', 'a')
+        self.controlkeyboard.hotkey('ctrl', 'c')
 
         self.interact.vad_audio.stream.stop_stream()
         os.system('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
@@ -216,11 +217,18 @@ class Interaction():
 
     def type_unicode(self, word):
         pyperclip.copy(word)
-        pyautogui.hotkey("ctrl", "v")
+        self.controlkeyboard.hotkey("ctrl", "v")
+
+class ControlKeyboard():
+    def hotkey(self, *argv):
+        for arg in argv:
+            red_text("PRESSING `" + str(arg) + "`")
+        pyautogui.hotkey(*argv)
 
 class GUITools():
-    def __init__ (self, interact):
+    def __init__ (self, interact, controlkeyboard):
         self.interact = interact
+        self.controlkeyboard = controlkeyboard
 
     def start_browser(self):
         os.system("firefox")
@@ -230,21 +238,21 @@ class GUITools():
         os.system("amixer set Master toggle")
 
     def volume_up (self):
-        pyautogui.hotkey('volumeup')
+        self.controlkeyboard.hotkey('volumeup')
 
     def volume_down (self):
-        pyautogui.hotkey('volumedown')
+        self.controlkeyboard.hotkey('volumedown')
 
     def say_current_window(self):
         self.interact.talk(self.get_current_window())
 
     def switch_window (self):
-        pyautogui.hotkey('alt', 'tab')
+        self.controlkeyboard.hotkey('alt', 'tab')
         time.sleep(1)
         self.say_current_window()
 
     def next_tab (self):
-        pyautogui.hotkey('ctrl', 'tab')
+        self.controlkeyboard.hotkey('ctrl', 'tab')
         time.sleep(1)
         self.say_current_window()
 
@@ -260,56 +268,56 @@ class GUITools():
             self.interact.talk(wn.wm_name)
 
     def close_tab(self):
-        pyautogui.hotkey('ctrl', 'w')
+        self.controlkeyboard.hotkey('ctrl', 'w')
 
     def previous_tab(self):
-        pyautogui.hotkey('ctrl', 'shift', 'tab')
+        self.controlkeyboard.hotkey('ctrl', 'shift', 'tab')
         time.sleep(1)
         self.interact.talk(self.get_current_window())
 
     def mark_and_delete_all(self):
-        pyautogui.hotkey('ctrl', 'a')
-        pyautogui.hotkey('del')
+        self.controlkeyboard.hotkey('ctrl', 'a')
+        self.controlkeyboard.hotkey('del')
 
     def repeat (self):
-        pyautogui.hotkey('ctrl', 'y')
+        self.controlkeyboard.hotkey('ctrl', 'y')
 
     def new_tab(self):
-        pyautogui.hotkey('ctrl', 't')
+        self.controlkeyboard.hotkey('ctrl', 't')
 
     def new_window(self):
-        pyautogui.hotkey('ctrl', 'n')
+        self.controlkeyboard.hotkey('ctrl', 'n')
 
     def copy (self):
-        pyautogui.hotkey('ctrl', 'c')
+        self.controlkeyboard.hotkey('ctrl', 'c')
 
     def select_all(self):
-        pyautogui.hotkey('ctrl', 'a')
+        self.controlkeyboard.hotkey('ctrl', 'a')
 
     def undo (self):
-        pyautogui.hotkey('ctrl', 'z')
+        self.controlkeyboard.hotkey('ctrl', 'z')
 
     def cut(self):
-        pyautogui.hotkey('ctrl', 'x')
+        self.controlkeyboard.hotkey('ctrl', 'x')
 
     def delete(self):
-        pyautogui.hotkey('del')
+        self.controlkeyboard.hotkey('del')
 
     def mark_current_line(self):
-        pyautogui.hotkey('home')
-        pyautogui.hotkey('shift', 'end')
+        self.controlkeyboard.hotkey('home')
+        self.controlkeyboard.hotkey('shift', 'end')
 
     def paste (self):
-        pyautogui.hotkey('ctrl', 'v')
+        self.controlkeyboard.hotkey('ctrl', 'v')
 
     def delete_last_word(self):
-        pyautogui.hotkey('ctrl', 'backspace')
+        self.controlkeyboard.hotkey('ctrl', 'backspace')
 
     def press_enter(self):
-        pyautogui.hotkey('enter')
+        self.controlkeyboard.hotkey('enter')
 
     def press_space(self):
-        pyautogui.hotkey('space')
+        self.controlkeyboard.hotkey('space')
 
 class Audio(object):
     """Streams raw audio from microphone. Data is received in a separate thread, and stored in a buffer, to be read from."""
@@ -475,10 +483,11 @@ def main(ARGS):
                          input_rate=ARGS.rate,
                          file=ARGS.file)
 
+    controlkeyboard = ControlKeyboard()
     interact = Interaction(vad_audio)
     textreplacements = TextReplacements()
-    features = Features(interact)
-    guitools = GUITools(interact)
+    features = Features(interact, controlkeyboard)
+    guitools = GUITools(interact, controlkeyboard)
 
     print("Sage 'mitschreiben', damit mitgeschrieben wird")
     frames = vad_audio.vad_collector()
