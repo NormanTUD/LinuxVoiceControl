@@ -77,11 +77,12 @@ class BaseFeatures():
         os.system(command)
 
 class Features():
-    def __init__ (self, interact, controlkeyboard, textreplacements):
+    def __init__ (self, interact, controlkeyboard, textreplacements, guitools):
         self.interact = interact
         self.basefeatures = BaseFeatures()
         self.controlkeyboard = controlkeyboard
         self.textreplacements = textreplacements
+        self.guitools = guitools
         self.radio_streams = {
             "(?:radio )?eins": {"link": "https://www.radioeins.de/live.m3u", "name": "Radio Eins"},
             "sachsen( radio)?": {"link": "http://avw.mdr.de/streams/284280-0_mp3_high.m3u", "name": "Sachsenradio" },
@@ -224,7 +225,6 @@ class Features():
         m = REMatcher(math_text)
         if m.match("^\d+(?:,\d+)?((\+|-|\*|/)\d+(?:,\d+)?)$"):
             self.controlkeyboard.copy(math_text)
-            self.controlkeyboard.copy(math_text)
             self.interact.vad_audio.stream.stop_stream()
             self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
             self.interact.talk(math_text + " gleich ")
@@ -250,6 +250,14 @@ class Features():
         self.interact.vad_audio.stream.stop_stream()
         self.basefeatures.run_system_command('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
         self.interact.vad_audio.stream.start_stream()
+
+    def read_line_aloud(self):
+        self.guitools.select_current_line()
+        self.controlkeyboard.hotkey('ctrl', 'c')
+        self.interact.vad_audio.stream.stop_stream()
+        self.basefeatures.run_system_command('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
+        self.interact.vad_audio.stream.start_stream()
+
 
     def tell_joke(self):
         array = [
@@ -413,7 +421,6 @@ class Interaction():
 
     def type_unicode(self, word):
         self.controlkeyboard.copy(word)
-        self.controlkeyboard.copy(word)
         if self.consolemode:
             self.controlkeyboard.hotkey("ctrl", "shift", "v")
         else:
@@ -421,12 +428,14 @@ class Interaction():
 
 class ControlKeyboard():
     def copy(self, word):
-        yellow_text("Copying `" + str(word) + "` to clipboard")
+        word_debug = word
+        word_debug = word_debug.replace("\n", "\\n")
+        yellow_text("Copying `" + str(word_debug) + "` to clipboard")
+        pyperclip.copy(word)
         pyperclip.copy(word)
 
     def hotkey(self, *argv):
-        for arg in argv:
-            yellow_text("Pressing `" + str(arg) + "`")
+        yellow_text("Pressing `" + ' + '.join(argv) + "`")
         pyautogui.hotkey(*argv)
 
 class GUITools():
@@ -551,10 +560,11 @@ class AnalyzeAudio ():
         self.regexes = {
             "^leiser$": self.guitools.volume_down,
             "^lauter$": self.guitools.volume_up,
-            "^(?:(?:kannst du mich hören))$": self.interact.can_you_hear_me,
+            "^(?:(?:ka(?:nn|m)st du mich hören))$": self.interact.can_you_hear_me,
             "^(?:(?:hörst du mich))$": self.interact.do_you_hear_me,
             "^star?te internet$": self.guitools.start_browser,
             "^alles vorlesen$": self.features.read_aloud,
+            "^(?:diese|aktuelle?)\s*zeile\s*vorlesen$": self.features.read_line_aloud,
             "^löschen$": self.guitools.delete,
             "^(?:aktuelle|dieser?) zeile (?:auswählen|markieren)$": self.guitools.select_current_line,
             "^(?:dieser?|aktuelle) zeile löschen$": self.guitools.delete_current_line,
@@ -775,8 +785,8 @@ def main(ARGS):
     controlkeyboard = ControlKeyboard()
     interact = Interaction(vad_audio, controlkeyboard)
     textreplacements = TextReplacements()
-    features = Features(interact, controlkeyboard, textreplacements)
     guitools = GUITools(interact, controlkeyboard)
+    features = Features(interact, controlkeyboard, textreplacements, guitools)
 
     analyzeaudio = AnalyzeAudio(guitools, interact, features, "Dresden")
 
