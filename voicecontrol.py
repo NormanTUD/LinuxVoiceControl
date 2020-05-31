@@ -103,6 +103,9 @@ class Features():
 
         self.interact.talk(summary)
 
+    def start_dr_house (self):
+        self.basefeatures.run_system_command("vlc ~/mailserver/filme_und_serien/Dr-House/")
+
     def bitcoin_price (self):
         self.interact.vad_audio.stream.stop_stream()
         self.basefeatures.run_system_command('echo "Ein Bitcoin = $(curl -s https://api.coindesk.com/v1/bpi/currentprice/usd.json | grep -o \'rate\\":\\"[^\\"]*\' | cut -d\\" -f3 | sed -e \"s/\..*//\") US Dollar" | sed -e "s/\,//" |  pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
@@ -607,6 +610,7 @@ class AnalyzeAudio ():
             "^letztes wort löschen$": self.guitools.delete_last_word,
             "^(?:spiel(?:er)?|[mn]ach) radio (.*)(\s+an)?$": {"fn": "self.features.play_radio", "param": "text"},
             "^(.*)(?:(?:aktuell.*bitcoin)|(?:bitcoin\s*preis))(.*)$": self.features.bitcoin_price,
+            "^star?te? doktor haus$": self.features.start_dr_house,
             "^wikipedia\s+(.*)$": {"fn": "self.features.read_wikipedia_article", "param": "m.group(1) or 'Linux'"},
             "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_the_day_after_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
             "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
