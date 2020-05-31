@@ -93,7 +93,15 @@ class Features():
 
     def read_wikipedia_article(self, article):
         wiki_wiki = wikipediaapi.Wikipedia('de')
-        page_py = wiki_wiki.page(urllib.parse.quote(article))
+
+        words = article.split(" ")
+        words_new = []
+        for word in words:
+            words_new.append(word.capitalize())
+
+        article = ' '.join(words_new)
+
+        page_py = wiki_wiki.page(article)
         summary = page_py.summary
 
         summary = summary.replace("[", "")
