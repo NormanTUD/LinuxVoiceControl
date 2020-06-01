@@ -444,7 +444,13 @@ class Interaction():
             self.vad_audio.stream.start_stream()
 
     def can_you_hear_me(self):
-        self.talk("Ja, kann ich")
+        array = [
+            "Ja, kann ich",
+            "Ja, sonst könnte ich dir auch nicht antworten",
+            "Nein... ähhh Doch. Ich meine ja."
+        ]
+
+        self.talk(self.basefeatures.random_element_from_array(array))
 
     def do_you_hear_me (self):
         self.talk("Ja, ich höre dich")
@@ -776,7 +782,7 @@ class AnalyzeAudio ():
                 "help": "Öffnet ein neues Fenster",
                 "say": ["Neues Fenster"]
             },
-            ".*ende.*dich.*selbst.*": {
+            ".*ende.*di(?:ch|e).*selbst.*": {
                 "fn": "self.features.suicide",
                 "help": "Beendet den Sprachassistenten",
                 "say": ["Beende dich selbst"]
