@@ -322,8 +322,6 @@ class TextReplacements():
         return text
 
     def replace_in_formula_mode(self, text):
-        text = text.replace("hundert", "100")
-        text = text.replace("hundert", "100")
         text = text.replace("ein hundert", "100")
         text = text.replace("zweihundert", "200")
         text = text.replace("zwei hundert", "200")
@@ -341,6 +339,9 @@ class TextReplacements():
         text = text.replace("achthundert", "800")
         text = text.replace("neun hundert", "900")
         text = text.replace("neunhundert", "900")
+
+        text = text.replace("hundert", "100")
+        text = text.replace("hundert", "100")
 
         words = text.split(" ")
         words_new = []
@@ -622,7 +623,7 @@ class AnalyzeAudio ():
             "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_the_day_after_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
             "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
             "^.*(?:(?:(?:gerade|jetzt)\s*wetter)|(?:wetter (?:gerade|jetzt)))(?: in (.*))?$": {"fn": "self.features.talk_current_weather", "param": "m.group(1) or '" + self.default_city+ "'"},
-            "^was (?:er)?gibt (.*)?$": {"fn": "self.features.calculate", "param": "m.group(1)"}
+            "^[wd]as (?:er)?gibt (.*)?$": {"fn": "self.features.calculate", "param": "m.group(1)"}
         }
 
     def do_what_i_just_said(self, text):
