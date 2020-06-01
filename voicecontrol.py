@@ -192,6 +192,16 @@ class Features():
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
 
+    def start_editor (self):
+        self.basefeatures.run_system_command("kate &")
+
+    def go_to_end_of_line (self):
+        self.controlkeyboard.hotkey('end')
+
+    def save (self):
+        self.controlkeyboard.hotkey('ctrl', 's')
+
+
     def suicide (self):
         self.interact.talk("ok, ich beende mich selbst und höre nicht mehr weiter zu!")
         sys.exit(0)
@@ -290,10 +300,15 @@ class Features():
     def read_aloud(self):
         self.controlkeyboard.hotkey('ctrl', 'a')
         self.controlkeyboard.hotkey('ctrl', 'c')
+        self.controlkeyboard.hotkey('ctrl', 'a')
+        self.controlkeyboard.hotkey('ctrl', 'c')
 
         self.interact.vad_audio.stream.stop_stream()
         self.basefeatures.run_system_command('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
         self.interact.vad_audio.stream.start_stream()
+
+    def lalelu (self):
+        self.interact.talk("Nur der Mann im Mond hört zu")
 
     def lalalalala(self):
         self.interact.talk("La la la la la")
@@ -481,7 +496,7 @@ class Interaction():
         array = [
             "Ja, kann ich",
             "Ja, sonst könnte ich dir auch nicht antworten",
-            "Nein... ähhh Doch. Ich meine ja."
+            "Nein. . äääähhh Doch. Ich meine ja."
         ]
 
         self.talk(self.basefeatures.random_element_from_array(array))
@@ -681,7 +696,7 @@ class AnalyzeAudio ():
                 "help": "Lautstärke lauter machen",
                 "say": ["lauter"]
             },
-            "(?:(?:(?:ka(?:nn|m)st\s*)?du mich hören))$": {
+            "(?:(?:(?:ka(?:nn|m)st\s*)?du (?:mich|nicht) hören))$": {
                 "fn": "self.interact.can_you_hear_me",
                 "help": "Antwortet, wenn das Gerät dich hören kann",
                 "say": ["Kannst du mich hören?"]
@@ -746,7 +761,12 @@ class AnalyzeAudio ():
                 "help": "Text aus dem Clipboard Einfügen",
                 "say": ["Einfügen"]
             },
-            "^la la la la la$": {
+            "^la+\s*le+\s*lu+$": {
+                "fn": "self.features.lalelu",
+                "help": "Lalelu",
+                "say": ["La le lu"]
+            },
+            "^la\s*la\s*la\s*la\s*la$": {
                 "fn": "self.features.lalalalala",
                 "help": "Lalalalala",
                 "say": ["La la la la la"]
@@ -821,7 +841,22 @@ class AnalyzeAudio ():
                 "help": "Öffnet ein neues Fenster",
                 "say": ["Neues Fenster"]
             },
-            ".*ende.*di(?:ch|e).*selbst.*": {
+            "datei\s*speichern?": {
+                "fn": "self.features.save",
+                "help": "Speicher Datei",
+                "say": ["Datei speichern"]
+            },
+            "ende der zeile": {
+                "fn": "self.features.go_to_end_of_line",
+                "help": "Gehe ans Ende der Zeile",
+                "say": ["Ans Ende der Zeile gehen"]
+            },
+            "star?te?r?\s*(?:ein(?:en)?)?\s*editor\s*": {
+                "fn": "self.features.start_editor",
+                "help": "Starte einen Texteditor",
+                "say": ["Starte einen Editor"]
+            },
+            ".*ende.*selbst.*": {
                 "fn": "self.features.suicide",
                 "help": "Beendet den Sprachassistenten",
                 "say": ["Beende dich selbst"]
@@ -918,6 +953,17 @@ class AnalyzeAudio ():
             command_help = helpstr + ", sage z.,B.: " + saystr
             if command_help is not None:
                 print(command_help)
+
+    def is_valid_command (self, text):
+        m = REMatcher(text)
+
+        is_valid = False
+
+        for regex in self.regexes:
+            if m.match(regex):
+                is_valid = True
+
+        return is_valid 
 
     def do_what_i_just_said(self, text):
         m = REMatcher(text)
@@ -1089,6 +1135,7 @@ def main(ARGS):
         ARGS.scorer = os.path.join(model_dir, ARGS.scorer)
 
     print('Initialisiere Modell...')
+    green_text("Sage " + assistant_name + " um den Assistenten zu aktivieren")
     logging.info("ARGS.model: %s", ARGS.model)
     model = deepspeech.Model(ARGS.model)
     if ARGS.scorer:
@@ -1213,12 +1260,15 @@ def main(ARGS):
                                     done_something = False
                     if done_something:
                         enabled = False
+                else:
+                    done_something = False
 
                     if not ARGS.nospinner:
                         if done_something:
                             spinner = Halo(text='Ausführen scheint geklappt zu haben', spinner='dots')
                             spinner.succeed()
                         else:
+                            #interact.play_sound("line_end.wav")
                             spinner = Halo(text='Es wurde nichts ausgeführt', spinner='dots')
                             spinner.fail()
                         spinner = Halo(text='Höre zu', spinner='dots')
