@@ -248,7 +248,7 @@ class Features():
             self.controlkeyboard.copy(math_text)
             self.interact.vad_audio.stream.stop_stream()
             self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
-            self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /g" | sed -e "s/-/ minus /g" | sed -e "s/\/ durch //g" | sed -e "s/\\*/ mal /" | sed -e "s/^/' + str(math_text) + ' gleich/" | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
+            self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /g" | sed -e "s/-/ minus /g" | sed -e "s/\/ durch //g" | sed -e "s/^/' + str(math_text) + ' gleich/" | sed -e "s/\\*/ mal /"  | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
             self.interact.vad_audio.stream.start_stream()
         else:
             red_text("Erkannt: " + str(math_text))
@@ -342,6 +342,11 @@ class TextReplacements():
 
         text = text.replace("hundert", "100")
         text = text.replace("hundert", "100")
+
+        text = text.replace("eine million", "1000000")
+        text = text.replace("ein million", "1000000")
+        text = text.replace("einmillion", "1000000")
+        text = text.replace("million", "1000000")
 
         words = text.split(" ")
         words_new = []
