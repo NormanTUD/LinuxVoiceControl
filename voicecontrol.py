@@ -295,6 +295,9 @@ class Features():
         self.basefeatures.run_system_command('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
         self.interact.vad_audio.stream.start_stream()
 
+    def lalalalala(self):
+        self.interact.talk("La la la la la")
+
     def read_line_aloud(self):
         self.guitools.select_current_line()
         self.controlkeyboard.hotkey('ctrl', 'c')
@@ -633,10 +636,10 @@ class AnalyzeAudio ():
         self.features = features
         self.default_city = default_city
         self.regexes = {
-            "^wiederhole was ich sage$": {
+            "^(?:(?:wiederhole was ich sage)|(?:sprich mir nach))$": {
                 "isfake": 1,
                 "help": "Spricht das, was gesagt worden ist, erneut aus",
-                "say": ["Wiederhole was ich sage"]
+                "say": ["Wiederhole was ich sage", "Sprich mir nach"]
             },
             "^konsolenmodus aktivieren$": {
                 "isfake": 1,
@@ -742,6 +745,11 @@ class AnalyzeAudio ():
                 "fn": "self.guitools.paste",
                 "help": "Text aus dem Clipboard Einfügen",
                 "say": ["Einfügen"]
+            },
+            "^la la la la la$": {
+                "fn": "self.features.lalalalala",
+                "help": "Lalalalala",
+                "say": ["La la la la la"]
             },
             "^aus\s*schneiden$": {
                 "fn": "self.guitools.cut",
@@ -1170,7 +1178,7 @@ def main(ARGS):
                                 interact.is_not_console()
                                 interact.talk("Konsolenmodus de-aktiviert")
                                 done_something = True
-                            elif "wiederhole was ich sage" in text:
+                            elif "wiederhole was ich sage" in text or "sprich mir nach" in text:
                                 interact.talk("OK")
                                 repeat_after_me = True
                                 done_something = True
