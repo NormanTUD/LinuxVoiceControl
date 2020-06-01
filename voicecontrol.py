@@ -837,7 +837,7 @@ class AnalyzeAudio ():
                 "help": "Text aus dem Clipboard Einfügen",
                 "say": ["Einfügen"]
             },
-            "^la+\s*le+\s*lu+$": {
+            "^(?:la+\s*le+\s*lu+)|(la la la)$": {
                 "fn": "self.features.lalelu",
                 "help": "Lalelu",
                 "say": ["La le lu"]
