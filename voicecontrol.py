@@ -359,12 +359,12 @@ class Features():
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
 
-    def random_string(self, stringLength=16):
-        letters = string.ascii_letters
-        return ''.join(random.choice(letters) for i in range(stringLength))
+    def random_string(self, string_length=16):
+        letters = string.ascii_letters + string.digits
+        return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(string_length))
 
     def create_password(self):
-        random_string = self.random_string(16)
+        random_string = self.random_string(25)
         print("Das zufällig generierte Passwort ist: " + random_string)
         self.controlkeyboard.copy(random_string)
         self.controlkeyboard.copy(random_string)
@@ -1035,7 +1035,7 @@ class AnalyzeAudio ():
                 "help": "Starte die Morgenroutine",
                 "say": ["Guten Morgen!"]
             },
-            "(?:er\s*stelle|generiere)\s*passwor[dt]": {
+            "^(?:(?:er\s*stelle|generieren?)\s*)?\s*(?:ein\s*)?passwor[td]$": {
                 "fn": "self.features.create_password",
                 "help": "Erstelle ein zufälliges Passwort",
                 "say": "Erstelle Passwort"
