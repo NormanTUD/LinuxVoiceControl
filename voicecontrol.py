@@ -199,8 +199,14 @@ class Features():
         self.controlkeyboard.hotkey('end')
 
     def save (self):
-        self.controlkeyboard.hotkey('ctrl', 's')
-
+        if self.guitools.is_console:
+            self.controlkeyboard.hotkey('esc')
+            self.controlkeyboard.hotkey(':')
+            self.controlkeyboard.hotkey('w')
+            self.controlkeyboard.hotkey('q')
+            self.controlkeyboard.hotkey('!')
+        else:
+            self.controlkeyboard.hotkey('ctrl', 's')
 
     def suicide (self):
         self.interact.talk("ok, ich beende mich selbst")
