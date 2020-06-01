@@ -29,6 +29,7 @@ import json
 import wikipediaapi
 from datetime import date, datetime, time
 from babel.dates import format_date, format_datetime, format_time
+import string
 
 assistant_name = "juli"
 default_city = "Dresden"
@@ -357,6 +358,17 @@ class Features():
         ]
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
+
+    def random_string(self, stringLength=16):
+        letters = string.ascii_letters
+        return ''.join(random.choice(letters) for i in range(stringLength))
+
+    def create_password(self):
+        random_string = self.random_string(16)
+        print("Das zufällig generierte Passwort ist: " + random_string)
+        self.controlkeyboard.copy(random_string)
+        self.controlkeyboard.copy(random_string)
+        self.interact.talk("Ein Passwort wurde erstellt und in das Clipboard kopiert")
 
     def favourite_song (self):
         array = [
@@ -1022,6 +1034,11 @@ class AnalyzeAudio ():
                 "fn": "self.routines.morning_routine",
                 "help": "Starte die Morgenroutine",
                 "say": ["Guten Morgen!"]
+            },
+            "(?:er\s*stelle|generiere)\s*passwor[dt]": {
+                "fn": "self.features.create_password",
+                "help": "Erstelle ein zufälliges Passwort",
+                "say": "Erstelle Passwort"
             }
         }
 
