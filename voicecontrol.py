@@ -127,7 +127,7 @@ class Features():
 
         m = REMatcher(text)
 
-        if m.match(r"(?:spiel(?:er)?|[nm]ach|star?te) radio (.+)(\s+an)?"):
+        if m.match(r"(?:spiel(?:er)?|[nm]ach|star?te) radio (.+)(\s+a[nb])?"):
             radioname = m.group(1)
 
         radio_stream = None
@@ -615,7 +615,7 @@ class AnalyzeAudio ():
             "^rückgängig$": self.guitools.undo,
             ".*ein(?:en)? witz": self.features.tell_joke,
             "^letztes wort löschen$": self.guitools.delete_last_word,
-            "^(?:spiel(?:er)?|[mn]ach|star?te) radio (.*)(\s+an)?$": {"fn": "self.features.play_radio", "param": "text"},
+            "^(?:spiel(?:er)?|[mn]ach|star?te) radio (.*)(\s+a[bn])?$": {"fn": "self.features.play_radio", "param": "text"},
             "^(.*)(?:(?:aktuell.*bitcoin)|(?:bitcoin\s*preis))(.*)$": self.features.bitcoin_price,
             "^star?te? doktor haus$": self.features.start_dr_house,
             "^wikipedia\s+(.*)$": {"fn": "self.features.read_wikipedia_article", "param": "m.group(1) or 'Linux'"},
