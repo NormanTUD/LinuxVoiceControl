@@ -56,6 +56,23 @@ class REMatcher(object):
         return self.rematch.group(i)
 
 class BaseFeatures():
+    def remove_text_in_brackets(self, text):
+        ret = ''
+        skip1c = 0
+        skip2c = 0
+        for i in text:
+            if i == '[':
+                skip1c += 1
+            elif i == '(':
+                skip2c += 1
+            elif i == ']' and skip1c > 0:
+                skip1c -= 1
+            elif i == ')'and skip2c > 0:
+                skip2c -= 1
+            elif skip1c == 0 and skip2c == 0:
+                ret += i
+        return ret
+
     def download_file_get_string (self, url):
         yellow_text(url)
         this_str = None
@@ -118,10 +135,12 @@ class Features():
         page_py = wiki_wiki.page(article)
         summary = page_py.summary
 
+
         summary = summary.replace("[", "")
         summary = summary.replace("]", "")
 
-        re.sub(r'\(.*?\)', r'', summary)
+        re.sub("[\(\[].*?[\)\]]", "", summary)
+        summary = self.basefeatures.remove_text_in_brackets(summary)
 
         self.interact.talk(summary)
 
