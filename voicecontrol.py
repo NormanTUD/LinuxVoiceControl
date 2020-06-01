@@ -30,9 +30,7 @@ import wikipediaapi
 from datetime import date, datetime, time
 from babel.dates import format_date, format_datetime, format_time
 import string
-
-assistant_name = "juli"
-default_city = "Dresden"
+from pathlib import Path
 
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
@@ -47,6 +45,24 @@ def yellow_text(string):
 
 def blue_text(string):
     print(str(fg('white')) + str(bg('blue')) + str(string) + str(attr('reset')))
+
+def read_first_line_of_file_if_exists (filename, name, default):
+    if os.path.isfile(filename):
+        with open(filename) as f:
+            first_line = f.readline()
+            first_line = first_line.replace("\n", "")
+            return first_line
+    else:
+        red_text("Die Datei " + filename + " existiert nicht. Typ: " + str(name) + ", Default-Wert: " + str(default));
+
+    return default
+
+home = str(Path.home())
+assistant_name_file = home + "/.assistant_name"
+default_city_file = home + "/.default_city"
+
+assistant_name = read_first_line_of_file_if_exists(assistant_name_file, "Assistentenname", "juli")
+default_city = read_first_line_of_file_if_exists(default_city_file, "Default-City", "Dresden")
 
 logging.basicConfig(level=20)
 
