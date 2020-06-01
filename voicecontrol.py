@@ -28,6 +28,8 @@ import urllib.parse
 import json
 import wikipediaapi
 
+assistant_name = "tina"
+
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
 
@@ -676,7 +678,7 @@ class AnalyzeAudio ():
                 "help": "Lautstärke lauter machen",
                 "say": ["lauter"]
             },
-            "^(?:(?:ka(?:nn|m)st du mich hören))$": {
+            "(?:(?:(?:ka(?:nn|m)st\s*)?du mich hören))$": {
                 "fn": "self.interact.can_you_hear_me",
                 "help": "Antwortet, wenn das Gerät dich hören kann",
                 "say": ["Kannst du mich hören?"]
@@ -1115,6 +1117,7 @@ def main(ARGS):
     wav_data = bytearray()
     starte_schreiben = False
     is_formel = False
+    enabled = False
     repeat_after_me = False
 
     for frame in frames:
@@ -1137,70 +1140,80 @@ def main(ARGS):
             if not text == "":
                 green_text("Recognized: >>>%s<<<" % text)
 
-                if repeat_after_me:
-                    interact.talk(text)
-                    repeat_after_me = False
-                else:
-                    done_something = analyzeaudio.do_what_i_just_said(text)
+                if not enabled and assistant_name in text:
+                    enabled = True
+                    if text == "tina":
+                        interact.talk("Ja?")
+                    text = text.replace(assistant_name + " ", "")
+                    text = text.replace(assistant_name, "")
 
-                    if not done_something:
-                        if 'formel eingeben' in text or 'formel ein geben' in text or 'formell eingeben' in text or 'formell ein geben' in text:
-                            interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
-                            is_formel = True
-                            interact.play_sound("bleep.wav")
-                            done_something = True
-                        elif "konsole" in text and not "nicht" in text and not "deaktivieren" in text:
-                            guitools.is_console()
-                            interact.is_console()
-                            interact.talk("Konsolenmodus aktiviert")
-                            done_something = True
-                        elif ("nicht" in text and "konsole" in text) or ("konsole" in text and "deaktivieren" in text):
-                            guitools.is_not_console()
-                            interact.is_not_console()
-                            interact.talk("Konsolenmodus de-aktiviert")
-                            done_something = True
-                        elif "wiederhole was ich sage" in text:
-                            interact.talk("OK")
-                            repeat_after_me = True
-                            done_something = True
-                        elif is_formel and 'text eingeben' in text:
-                            interact.talk("Ab jetzt wieder Text")
-                            is_formel = False
-                            interact.play_sound("bleep.wav")
-                            done_something = True
-                        elif starte_schreiben:
-                            if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
-                                print("Es wird nicht mehr mitgeschrieben")
-                                interact.play_sound("line_end.wav")
-                                starte_schreiben = False
-                                done_something = True
-                            elif is_formel:
-                                text = textreplacements.replace_in_formula_mode(text)
-                                interact.type_unicode(text)
-                                done_something = True
-                            elif text:
-                                text = text + " "
-                                text = textreplacements.replace_in_text_mode(text)
-                                interact.type_unicode(text)
-                                done_something = True
-                        else:
-                            if text == "mitschreiben" or text == "mit schreiben":
-                                starte_schreiben = True
-                                print("Starte schreiben")
+                if (repeat_after_me or starte_schreiben or enabled) and not text == "":
+                    if repeat_after_me:
+                        interact.talk(text)
+                        repeat_after_me = False
+                    else:
+                        done_something = analyzeaudio.do_what_i_just_said(text)
+
+                        if not done_something:
+                            if 'formel eingeben' in text or 'formel ein geben' in text or 'formell eingeben' in text or 'formell ein geben' in text:
+                                interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
+                                is_formel = True
                                 interact.play_sound("bleep.wav")
                                 done_something = True
-                            else:
-                                print("Sage 'mitschreiben', damit mitgeschrieben wird")
+                            elif "konsole" in text and not "nicht" in text and not "deaktivieren" in text:
+                                guitools.is_console()
+                                interact.is_console()
+                                interact.talk("Konsolenmodus aktiviert")
                                 done_something = True
-
-                if not ARGS.nospinner:
+                            elif ("nicht" in text and "konsole" in text) or ("konsole" in text and "deaktivieren" in text):
+                                guitools.is_not_console()
+                                interact.is_not_console()
+                                interact.talk("Konsolenmodus de-aktiviert")
+                                done_something = True
+                            elif "wiederhole was ich sage" in text:
+                                interact.talk("OK")
+                                repeat_after_me = True
+                                done_something = True
+                            elif is_formel and 'text eingeben' in text:
+                                interact.talk("Ab jetzt wieder Text")
+                                is_formel = False
+                                interact.play_sound("bleep.wav")
+                                done_something = True
+                            elif starte_schreiben:
+                                if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
+                                    print("Es wird nicht mehr mitgeschrieben")
+                                    interact.play_sound("line_end.wav")
+                                    starte_schreiben = False
+                                    done_something = True
+                                elif is_formel:
+                                    text = textreplacements.replace_in_formula_mode(text)
+                                    interact.type_unicode(text)
+                                    done_something = True
+                                elif text:
+                                    text = text + " "
+                                    text = textreplacements.replace_in_text_mode(text)
+                                    interact.type_unicode(text)
+                                    done_something = True
+                            else:
+                                if text == "mitschreiben" or text == "mit schreiben":
+                                    starte_schreiben = True
+                                    print("Starte schreiben")
+                                    interact.play_sound("bleep.wav")
+                                    done_something = True
+                                else:
+                                    print("Sage 'mitschreiben', damit mitgeschrieben wird")
+                                    done_something = False
                     if done_something:
-                        spinner = Halo(text='Ausführen scheint geklappt zu haben', spinner='dots')
-                        spinner.succeed()
-                    else:
-                        spinner = Halo(text='Es wurde nichts ausgeführt', spinner='dots')
-                        spinner.fail()
-                    spinner = Halo(text='Höre zu', spinner='dots')
+                        enabled = False
+
+                    if not ARGS.nospinner:
+                        if done_something:
+                            spinner = Halo(text='Ausführen scheint geklappt zu haben', spinner='dots')
+                            spinner.succeed()
+                        else:
+                            spinner = Halo(text='Es wurde nichts ausgeführt', spinner='dots')
+                            spinner.fail()
+                        spinner = Halo(text='Höre zu', spinner='dots')
             stream_context = model.createStream()
 
 if __name__ == '__main__':
