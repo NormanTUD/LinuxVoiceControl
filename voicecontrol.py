@@ -278,6 +278,16 @@ class Features():
         self.basefeatures.run_system_command('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
         self.interact.vad_audio.stream.start_stream()
 
+    def say_something_philosophical (self):
+        array = [
+            "Das ontisch Nächste ist das ontologisch Fernste",
+            "Jedes Wort ist ein Vorurteil",
+            "Man verdirbt einen Jüngling am sichersten, wenn man ihn verleitet, den Gleichdenkenden höher zu achten als den Andersdenkenden.",
+        ]
+
+        self.interact.talk(self.basefeatures.random_element_from_array(array))
+
+
 
     def tell_joke(self):
         array = [
@@ -620,6 +630,7 @@ class AnalyzeAudio ():
             "^(?:lautlos|wieder laut)$": self.guitools.toggle_volume,
             "^rückgängig$": self.guitools.undo,
             ".*ein(?:en)? witz": self.features.tell_joke,
+            ".*[dsl]ag?.*philosophisches": self.features.say_something_philosophical,
             "^letztes wort löschen$": self.guitools.delete_last_word,
             "^(?:spiel(?:er)?|[mn]ach|star?te) radio (.*)(\s+a[bn])?$": {"fn": "self.features.play_radio", "param": "text"},
             "^(.*)(?:(?:aktuell.*bitcoin)|(?:bitcoin\s*preis))(.*)$": self.features.bitcoin_price,
