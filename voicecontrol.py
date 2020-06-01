@@ -533,6 +533,11 @@ class Interaction():
     def do_you_hear_me (self):
         self.talk("Ja, ich höre dich")
 
+    def play_sound_ok(self):
+        self.play_sound("bleep.wav")
+
+    def play_sound_not_ok(self):
+        self.play_sound("line_end.wav")
 
     def play_sound (self, path):
         self.vad_audio.stream.stop_stream()
@@ -1240,7 +1245,7 @@ class SpecialCommands():
                 self.spinner_text = "Ich warte auf deinen Befehl"
             else:
                 self.spinner_text = self.spinner_text_default
-            self.interact.play_sound("line_end.wav")
+            self.interact.play_sound_not_ok()
             self.start_writing = False
             self.done_something = False
         elif text:
@@ -1279,7 +1284,7 @@ class SpecialCommands():
                 if m.match("formell? ein\s*geben"):
                     self.interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
                     self.is_formel = True
-                    self.interact.play_sound("bleep.wav")
+                    self.interact.play_sound_ok()
                     self.done_something = True
                     self.spinner_text = "Du bist im Formel-Modus"
                 elif m.match("konsole.*\s+aktivier"):
@@ -1300,7 +1305,7 @@ class SpecialCommands():
                 elif self.is_formel and m.match("wie\s*der text ein\s*geben"):
                     self.interact.talk("Ab jetzt wieder Text")
                     self.is_formel = False
-                    self.interact.play_sound("bleep.wav")
+                    self.interact.play_sound_ok()
                     self.done_something = True
                     self.spinner_text = self.spinner_default_write_mode
                 elif self.start_writing:
@@ -1309,7 +1314,7 @@ class SpecialCommands():
                     if m.match("^mit\s*schreiben$"):
                         self.start_writing = True
                         print("Starte schreiben")
-                        self.interact.play_sound("bleep.wav")
+                        self.interact.play_sound_ok()
                         self.done_something = True
                         self.spinner_text = self.spinner_default_write_mode
                     else:
