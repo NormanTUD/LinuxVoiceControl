@@ -205,6 +205,7 @@ class Features():
             self.controlkeyboard.hotkey('w')
             self.controlkeyboard.hotkey('q')
             self.controlkeyboard.hotkey('!')
+            self.controlkeyboard.hotkey('enter')
         else:
             self.controlkeyboard.hotkey('ctrl', 's')
 
