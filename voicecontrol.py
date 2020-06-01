@@ -27,8 +27,11 @@ import zahlwort2num as w2n
 import urllib.parse
 import json
 import wikipediaapi
+from datetime import date, datetime, time
+from babel.dates import format_date, format_datetime, format_time
 
 assistant_name = "juli"
+default_city = "Dresden"
 
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
@@ -118,6 +121,23 @@ class Features():
             }
         }
 
+    def get_weekday(self):
+        today = date.today()
+        return ("Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag")[today.weekday()]
+
+    def talk_weekday(self):
+        weekday = self.get_weekday()
+        self.interact.talk(weekday)
+
+    def talk_calendar_week (self):
+        calweek = date.today().isocalendar()[1]
+        self.interact.talk("Es ist die Kalenderwoche " + str(calweek))
+
+    def talk_current_date (self):
+        d = datetime.today()
+        date_string = "Heute ist " + self.get_weekday() + " der " + str(format_date(d, locale='de_DE'))
+        self.interact.talk(date_string)
+
     def get_available_radio_names (self):
         names = []
         for key in self.radio_streams:
@@ -164,6 +184,8 @@ class Features():
 
         if m.match(r"(?:spiel(?:er)?|[nm]ach|star?te) radio (.+)(\s+a[nb])?"):
             radioname = m.group(1)
+        else:
+            radioname = text
 
         radio_stream = None
         radio_name = None
@@ -656,11 +678,27 @@ class GUITools():
     def press_space(self):
         self.controlkeyboard.hotkey('space')
 
-class AnalyzeAudio ():
-    def __init__ (self, guitools, interact, features, default_city):
+class Routines():
+    def __init__ (self, guitools, interact, features, this_default_city):
         self.guitools = guitools
         self.interact = interact
         self.features = features
+        self.default_city = this_default_city
+
+    def morning_routine(self):
+        self.interact.talk("Guten Morgen")
+        self.features.talk_current_date()
+        self.features.talk_calendar_week()
+        self.features.talk_current_weather(self.default_city)
+        self.features.play_radio("radio eins")
+        
+
+class AnalyzeAudio ():
+    def __init__ (self, guitools, interact, features, default_city, routines):
+        self.guitools = guitools
+        self.interact = interact
+        self.features = features
+        self.routines = routines
         self.default_city = default_city
         self.regexes = {
             "^(?:(?:wiederhole was ich sage)|(?:sprich [wm]ir nach))$": {
@@ -722,6 +760,22 @@ class AnalyzeAudio ():
                 "fn": "self.guitools.start_browser",
                 "help": "Startet einen Internet-Browser",
                 "say": ["Starte Interent"]
+            },
+            "(?:wochentag|welcher\s*tag)": {
+                "fn": "self.features.talk_weekday",
+                "help": "Sagt, welcher Wochentag ist",
+                "say": ["Welcher Wochentag ist?"]
+            },
+
+            "kalenderwoche": {
+                "fn": "self.features.talk_calendar_week",
+                "help": "Sagt, welches Kalenderwoche ist",
+                "say": ["Welche Kalenderwoche ist?"]
+            },
+            "^.*datum ist heute$": {
+                "fn": "self.features.talk_current_date",
+                "help": "Sagt, welches Datum heute ist",
+                "say": ["Welches Datum ist heute?"]
             },
             "^alles vorlesen$": {
                 "fn": "self.features.read_aloud",
@@ -958,6 +1012,11 @@ class AnalyzeAudio ():
                 "fn": "self.features.favourite_song",
                 "help": "Sagt das Lieblingslied des Sprachassistenten an",
                 "say": ["Was ist dein Lieblingslied?"]
+            },
+            "^guten?\s*morg[ea]n$": {
+                "fn": "self.routines.morning_routine",
+                "help": "Starte die Morgenroutine",
+                "say": ["Guten Morgen!"]
             }
         }
 
@@ -1286,7 +1345,8 @@ def main(ARGS):
     textreplacements = TextReplacements()
     guitools = GUITools(interact, controlkeyboard)
     features = Features(interact, controlkeyboard, textreplacements, guitools)
-    analyzeaudio = AnalyzeAudio(guitools, interact, features, "Dresden")
+    routines = Routines(guitools, interact, features, default_city)
+    analyzeaudio = AnalyzeAudio(guitools, interact, features, default_city, routines)
 
     if ARGS.helpspeech:
         analyzeaudio.show_available_commands()
