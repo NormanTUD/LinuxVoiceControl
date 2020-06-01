@@ -1137,9 +1137,9 @@ class VADAudio(Audio):
                     ring_buffer.clear()
 
 class SpecialCommands():
-    def __init__(self, analyzeaudio, interact, guitools, textreplacements, spinner):
+    def __init__(self, analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text_default):
         self.spinner_default_write_mode = "Was du jetzt sagst wird aufgeschrieben"
-        self.spinner_text_default = "Höre zu"
+        self.spinner_text_default = spinner_text_default
         self.spinner_text = self.spinner_text_default
 
         self.last_command_enabled = False
@@ -1291,10 +1291,10 @@ def main(ARGS):
 
     # Stream from microphone to DeepSpeech using VAD
     spinner = None
-    spinner_text = "Höre zu"
+    spinner_text = "Sage " + assistant_name + " um Befehle zu erteilen"
     if not ARGS.nospinner:
         spinner = Halo(text=spinner_text, spinner='dots')
-    specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner)
+    specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text)
     stream_context = model.createStream()
 
     wav_data = bytearray()
