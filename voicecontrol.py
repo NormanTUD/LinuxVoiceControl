@@ -203,7 +203,7 @@ class Features():
 
 
     def suicide (self):
-        self.interact.talk("ok, ich beende mich selbst und höre nicht mehr weiter zu!")
+        self.interact.talk("ok, ich beende mich selbst")
         sys.exit(0)
 
     def get_weather_json (self, place):
@@ -654,7 +654,7 @@ class AnalyzeAudio ():
         self.features = features
         self.default_city = default_city
         self.regexes = {
-            "^(?:(?:wiederhole was ich sage)|(?:sprich mir nach))$": {
+            "^(?:(?:wiederhole was ich sage)|(?:sprich [wm]ir nach))$": {
                 "isfake": 1,
                 "help": "Spricht das, was gesagt worden ist, erneut aus",
                 "say": ["Wiederhole was ich sage", "Sprich mir nach"]
@@ -814,7 +814,7 @@ class AnalyzeAudio ():
                 "help": "Schließe Tab (drücke CTRL w)",
                 "say": ["Schließe Tab"]
             },
-            "^(?:wechsel (?:fenster|elster))|(?:(?:elster|fenster) wechseln)$": {
+            "^(?:wechsel (?:fenster|elster))|(?:(?:elster|fenster) wechseln?)$": {
                 "fn": "self.guitools.switch_window",
                 "help": "Wechsel das aktuelle Fenster (alt+tab)",
                 "say": ["Wechsel Fenster", "Fenster wechseln"]
@@ -834,7 +834,7 @@ class AnalyzeAudio ():
                 "help": "Öffnet einen neuen Tab",
                 "say": ["Neuer Tab"]
             },
-            "^nächster ta[bp]?$": {
+            "^nächster? ta[bp]?$": {
                 "fn": "self.guitools.next_tab",
                 "help": "Wechselt in den nächsten Tab",
                 "say": ["Nächster Tab"]
@@ -859,12 +859,12 @@ class AnalyzeAudio ():
                 "help": "Gehe ans Ende der Zeile",
                 "say": ["Ans Ende der Zeile gehen"]
             },
-            "star?te?r?\s*(?:ein(?:en)?)?\s*editor\s*": {
+            "s?tar?te?r?\s*(?:ein(?:e[nm])?)?\s*(?:text\s*)?editor\s*": {
                 "fn": "self.features.start_editor",
                 "help": "Starte einen Texteditor",
                 "say": ["Starte einen Editor"]
             },
-            ".*ende.*selbst.*": {
+            ".*ende.*(?:dich|selbst).*": {
                 "fn": "self.features.suicide",
                 "help": "Beendet den Sprachassistenten",
                 "say": ["Beende dich selbst"]
@@ -1134,6 +1134,127 @@ class VADAudio(Audio):
                     yield None
                     ring_buffer.clear()
 
+class SpecialCommands():
+    def __init__(self, analyzeaudio, interact, guitools, textreplacements, spinner):
+        self.spinner_text_default = "Höre zu"
+        self.spinner_text = self.spinner_text_default
+
+        self.last_command_enabled = False
+        self.enabled = False
+        self.repeat_after_me = False
+        self.start_writing = False
+        self.is_formel = False
+        self.start_writing = False
+        self.done_something = False
+
+        self.analyzeaudio = analyzeaudio
+        self.interact = interact
+        self.guitools = guitools
+        self.textreplacements = textreplacements
+        self.spinner = spinner
+
+    def check_if_assistants_name_has_been_said (self, text):
+        if not self.enabled and assistant_name in text:
+            self.enabled = True
+            self.last_command_enabled = True
+            if text == assistant_name:
+                self.interact.talk("Ja?")
+            text = text.replace(assistant_name + " ", "")
+            text = text.replace(assistant_name, "")
+            self.spinner_text = "Ich warte auf deinen Befehl"
+        return text
+
+    def write(self, text):
+        if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
+            print("Es wird nicht mehr mitgeschrieben")
+            if self.enabled:
+                self.spinner_text = "Ich warte auf deinen Befehl"
+            else:
+                self.spinner_text = self.spinner_text_default
+            self.interact.play_sound("line_end.wav")
+            self.start_writing = False
+            self.done_something = False
+        elif text:
+            if self.is_formel:
+                text = self.textreplacements.replace_in_formula_mode(text)
+            else:
+                text = text + " "
+                text = self.textreplacements.replace_in_text_mode(text)
+            self.interact.type_unicode(text)
+            self.done_something = True
+
+    def get_spinner_text(self):
+        return self.spinner_text
+
+    def while_loop_function (self, text):
+        text = " ".join(text.split())
+        if not text == "":
+            green_text("Recognized: >>>%s<<<" % text)
+
+            text = self.check_if_assistants_name_has_been_said(text)
+
+            if self.repeat_after_me:
+                self.interact.talk(text)
+                self.spinner_text = self.spinner_text_default
+                self.repeat_after_me = False
+    
+            if (self.start_writing or self.enabled) and not text == "":
+                self.done_something = self.analyzeaudio.do_what_i_just_said(text)
+
+            if self.done_something and not self.last_command_enabled:
+                self.enabled = False
+                self.spinner_text = self.spinner_text_default
+            else:
+                self.last_command_enabled = False
+                m = REMatcher(text)
+                if m.match("formell? ein\s*geben"):
+                    self.interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
+                    self.is_formel = True
+                    self.interact.play_sound("bleep.wav")
+                    self.done_something = True
+                    self.spinner_text = "Du bist im Formel-Modus"
+                elif m.match("konsole.*\s+aktivier"):
+                    self.guitools.is_console()
+                    self.interact.is_console()
+                    self.interact.talk("Konsolenmodus aktiviert")
+                    self.done_something = True
+                    self.spinner_text = "Du bist im Konsolen-Modus"
+                elif m.match("(?:nicht.*konsole)|(?:konsole.*deaktivier)"):
+                    self.guitools.is_not_console()
+                    self.interact.is_not_console()
+                    self.interact.talk("Konsolenmodus de-aktiviert")
+                    self.done_something = True
+                    self.spinner_text = "Was du jetzt sagst wird aufgeschrieben"
+                elif m.match("(?:wiederhole.*ich.*sage)|(?:sprich ([wm]ir|mehr) nach)"):
+                    self.interact.talk("OK")
+                    self.repeat_after_me = True
+                    self.done_something = True
+                    self.spinner_text = "Was du jetzt aussprichst wird wiederholt"
+                elif self.is_formel and m.match("wie\s*der text ein\s*geben"):
+                    self.interact.talk("Ab jetzt wieder Text")
+                    self.is_formel = False
+                    self.interact.play_sound("bleep.wav")
+                    self.done_something = True
+                    self.spinner_text = "Was du jetzt sagst wird aufgeschrieben"
+                elif self.start_writing:
+                    self.write(text)
+                else:
+                    if m.match("^mit\s*schreiben$"):
+                        self.start_writing = True
+                        print("Starte schreiben")
+                        self.interact.play_sound("bleep.wav")
+                        self.done_something = True
+                        self.spinner_text = "Was du jetzt sagst wird aufgeschrieben"
+                    else:
+                        print("Sage 'mitschreiben', damit mitgeschrieben wird")
+                        self.done_something = False
+        else:
+            self.done_something = False
+
+
+"""
+ENDE KLASSE SpecialCommands
+"""
 
 def main(ARGS):
     # Load DeepSpeech model
@@ -1162,35 +1283,35 @@ def main(ARGS):
     textreplacements = TextReplacements()
     guitools = GUITools(interact, controlkeyboard)
     features = Features(interact, controlkeyboard, textreplacements, guitools)
-
     analyzeaudio = AnalyzeAudio(guitools, interact, features, "Dresden")
 
     if ARGS.helpspeech:
         analyzeaudio.show_available_commands()
         sys.exit(0)
+    interact.talk(assistant_name + " ist bereit")
 
     print("Sage 'mitschreiben', damit mitgeschrieben wird")
     frames = vad_audio.vad_collector()
 
     # Stream from microphone to DeepSpeech using VAD
     spinner = None
+    spinner_text = "Höre zu"
     if not ARGS.nospinner:
-        spinner = Halo(text='Höre zu', spinner='dots')
+        spinner = Halo(text=spinner_text, spinner='dots')
+    specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner)
     stream_context = model.createStream()
 
     wav_data = bytearray()
-    starte_schreiben = False
-    is_formel = False
-    enabled = False
-    repeat_after_me = False
 
     for frame in frames:
         if frame is not None:
             if spinner:
+                spinner.text = specialcommands.get_spinner_text()
                 spinner.start()
             logging.debug("streaming frame")
             stream_context.feedAudioContent(np.frombuffer(frame, np.int16))
-            if ARGS.savewav: wav_data.extend(frame)
+            if ARGS.savewav:
+                wav_data.extend(frame)
         else:
             if spinner:
                 spinner.stop()
@@ -1199,88 +1320,7 @@ def main(ARGS):
                 vad_audio.write_wav(os.path.join(ARGS.savewav, datetime.now().strftime("savewav_%Y-%m-%d_%H-%M-%S_%f.wav")), wav_data)
                 wav_data = bytearray()
             text = stream_context.finishStream()
-
-            text = " ".join(text.split())
-            if not text == "":
-                green_text("Recognized: >>>%s<<<" % text)
-
-                if not enabled and assistant_name in text:
-                    enabled = True
-                    if text == assistant_name:
-                        interact.talk("Ja?")
-                    text = text.replace(assistant_name + " ", "")
-                    text = text.replace(assistant_name, "")
-
-                if (repeat_after_me or starte_schreiben or enabled) and not text == "":
-                    if repeat_after_me:
-                        interact.talk(text)
-                        repeat_after_me = False
-                    else:
-                        done_something = analyzeaudio.do_what_i_just_said(text)
-
-                        if not done_something:
-                            if 'formel eingeben' in text or 'formel ein geben' in text or 'formell eingeben' in text or 'formell ein geben' in text:
-                                interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
-                                is_formel = True
-                                interact.play_sound("bleep.wav")
-                                done_something = True
-                            elif "konsole" in text and not "nicht" in text and not "deaktivieren" in text:
-                                guitools.is_console()
-                                interact.is_console()
-                                interact.talk("Konsolenmodus aktiviert")
-                                done_something = True
-                            elif ("nicht" in text and "konsole" in text) or ("konsole" in text and "deaktivieren" in text):
-                                guitools.is_not_console()
-                                interact.is_not_console()
-                                interact.talk("Konsolenmodus de-aktiviert")
-                                done_something = True
-                            elif "wiederhole was ich sage" in text or "sprich mir nach" in text:
-                                interact.talk("OK")
-                                repeat_after_me = True
-                                done_something = True
-                            elif is_formel and 'text eingeben' in text:
-                                interact.talk("Ab jetzt wieder Text")
-                                is_formel = False
-                                interact.play_sound("bleep.wav")
-                                done_something = True
-                            elif starte_schreiben:
-                                if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
-                                    print("Es wird nicht mehr mitgeschrieben")
-                                    interact.play_sound("line_end.wav")
-                                    starte_schreiben = False
-                                    done_something = True
-                                elif is_formel:
-                                    text = textreplacements.replace_in_formula_mode(text)
-                                    interact.type_unicode(text)
-                                    done_something = True
-                                elif text:
-                                    text = text + " "
-                                    text = textreplacements.replace_in_text_mode(text)
-                                    interact.type_unicode(text)
-                                    done_something = True
-                            else:
-                                if text == "mitschreiben" or text == "mit schreiben":
-                                    starte_schreiben = True
-                                    print("Starte schreiben")
-                                    interact.play_sound("bleep.wav")
-                                    done_something = True
-                                else:
-                                    print("Sage 'mitschreiben', damit mitgeschrieben wird")
-                                    done_something = False
-                    if done_something:
-                        enabled = False
-                else:
-                    done_something = False
-
-                    if not ARGS.nospinner:
-                        if done_something:
-                            spinner = Halo(text='Ausführen scheint geklappt zu haben', spinner='dots')
-                            spinner.succeed()
-                        else:
-                            #interact.play_sound("line_end.wav")
-                            spinner = Halo(text='Es wurde nichts ausgeführt', spinner='dots')
-                            spinner.fail()
-                        spinner = Halo(text='Höre zu', spinner='dots')
+            specialcommands.while_loop_function(text)
             stream_context = model.createStream()
 
 if __name__ == '__main__':
