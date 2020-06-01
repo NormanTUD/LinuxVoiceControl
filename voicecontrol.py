@@ -28,7 +28,7 @@ import urllib.parse
 import json
 import wikipediaapi
 
-assistant_name = "tina"
+assistant_name = "juli"
 
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
@@ -496,7 +496,7 @@ class Interaction():
         array = [
             "Ja, kann ich",
             "Ja, sonst könnte ich dir auch nicht antworten",
-            "Nein. . äääähhh Doch. Ich meine ja."
+            "Nein. ähhh Doch. Ich meine ja."
         ]
 
         self.talk(self.basefeatures.random_element_from_array(array))
@@ -596,6 +596,9 @@ class GUITools():
 
     def repeat (self):
         self.controlkeyboard.hotkey('ctrl', 'y')
+
+    def escape (self):
+        self.controlkeyboard.hotkey('esc')
 
     def new_tab(self):
         self.controlkeyboard.hotkey('ctrl', 't')
@@ -745,6 +748,11 @@ class AnalyzeAudio ():
                 "fn": "self.guitools.repeat",
                 "help": "Hole die letzte rückgängig gemachte Änderung wieder",
                 "say": ["Wiederholen"]
+            },
+            "^abbrechen$": {
+                "fn": "self.guitools.escape",
+                "help": "Bricht aktuellen Vorgang ab (mit ESC)",
+                "say": ["Abbrechen"]
             },
             "^kopieren$": {
                 "fn": "self.guitools.copy",
@@ -1148,6 +1156,7 @@ def main(ARGS):
                          input_rate=ARGS.rate,
                          file=ARGS.file)
 
+    basefeatures = BaseFeatures()
     controlkeyboard = ControlKeyboard()
     interact = Interaction(vad_audio, controlkeyboard)
     textreplacements = TextReplacements()
@@ -1197,7 +1206,7 @@ def main(ARGS):
 
                 if not enabled and assistant_name in text:
                     enabled = True
-                    if text == "tina":
+                    if text == assistant_name:
                         interact.talk("Ja?")
                     text = text.replace(assistant_name + " ", "")
                     text = text.replace(assistant_name, "")
