@@ -290,6 +290,16 @@ class Features():
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
 
+    def favourite_song (self):
+        array = [
+            "Monoton und Minimal von Welle Erdball",
+            "Digital ist Besser von Tocotronic",
+            "Starless von King Krimson",
+            "Technologik von Däft Pank"
+        ]
+
+        self.interact.talk(self.basefeatures.random_element_from_array(array))
+
     def tell_joke(self):
         array = [
             "Was ist weiß und steht hinter einem Baum? Eine scheue Milch",
@@ -862,6 +872,11 @@ class AnalyzeAudio ():
                 "param": "m.group(1)",
                 "help": "Führt einfache Rechnungen aus",
                 "say": ["Was ergibt 5 + 10?"]
+            },
+            "^[wd]as ist.*lieb(?:lings|es)?\s*lied$": {
+                "fn": "self.features.favourite_song",
+                "help": "Sagt das Lieblingslied des Sprachassistenten an",
+                "say": ["Was ist dein Lieblingslied?"]
             }
         }
 
