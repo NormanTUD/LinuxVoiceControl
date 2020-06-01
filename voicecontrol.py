@@ -595,8 +595,42 @@ class AnalyzeAudio ():
         self.interact = interact
         self.features = features
         self.default_city = default_city
-
         self.regexes = {
+            "^wiederhole was ich sage$": {
+                "isfake": 1,
+                "help": "Spricht das, was gesagt worden ist, erneut aus",
+                "say": ["Wiederhole was ich sage"]
+            },
+            "^konsolenmodus aktivieren$": {
+                "isfake": 1,
+                "help": "Startet den Konsolen-Modus",
+                "say": ["Konsolenmodus aktivieren"]
+            },
+            "^konsolenmodus deaktivieren$": {
+                "isfake": 1,
+                "help": "Deaktiviert den Konsolen-Modus",
+                "say": ["Konsolenmodus deaktivieren"]
+            },
+            "^formel eingeben$": {
+                "isfake": 1,
+                "help": "Startet den Formel-Modus",
+                "say": ["Formel eingeben"]
+            },
+            "^text eingeben$": {
+                "isfake": 1,
+                "help": "Beendet den Formel-Modus und gibt wieder normalen Text ein",
+                "say": ["Text eingeben"]
+            },
+            "^mitschreiben$": {
+                "isfake": 1,
+                "help": "Tippt das, was gesagt worden ist, über eine virtuelle Tastatur ein",
+                "say": ["Mitschreiben"]
+            },
+            "^nicht mehr mitschreiben$": {
+                "isfake": 1,
+                "help": "Hört auf mitzuschreiben",
+                "say": ["Nicht mehr mitschreiben"]
+            },
             "^leiser$": {
                 "fn": "self.guitools.volume_down", 
                 "help": "Lautstärke leiser machen",
@@ -841,7 +875,7 @@ class AnalyzeAudio ():
         done_something = False
 
         for regex in self.regexes:
-            if m.match(regex):
+            if not "isfake" in self.regexes[regex] and m.match(regex):
                 fn_name = self.regexes[regex]["fn"]
                 param = ''
                 if "param" in self.regexes[regex]:
@@ -1004,7 +1038,7 @@ def main(ARGS):
         ARGS.model = os.path.join(model_dir, 'output_graph.pb')
         ARGS.scorer = os.path.join(model_dir, ARGS.scorer)
 
-    print('Initializing model...')
+    print('Initialisiere Modell...')
     logging.info("ARGS.model: %s", ARGS.model)
     model = deepspeech.Model(ARGS.model)
     if ARGS.scorer:
@@ -1035,7 +1069,7 @@ def main(ARGS):
     # Stream from microphone to DeepSpeech using VAD
     spinner = None
     if not ARGS.nospinner:
-        spinner = Halo(spinner='line')
+        spinner = Halo(text='Höre zu', spinner='dots')
     stream_context = model.createStream()
 
     wav_data = bytearray()
@@ -1074,41 +1108,59 @@ def main(ARGS):
                             interact.talk("Sprich zeichen für zeichen ein und sage wenn fertig 'wieder text eingeben'")
                             is_formel = True
                             interact.play_sound("bleep.wav")
+                            done_something = True
                         elif "konsole" in text and not "nicht" in text and not "deaktivieren" in text:
                             guitools.is_console()
                             interact.is_console()
                             interact.talk("Konsolenmodus aktiviert")
+                            done_something = True
                         elif ("nicht" in text and "konsole" in text) or ("konsole" in text and "deaktivieren" in text):
                             guitools.is_not_console()
                             interact.is_not_console()
                             interact.talk("Konsolenmodus de-aktiviert")
+                            done_something = True
                         elif "wiederhole was ich sage" in text:
                             interact.talk("OK")
                             repeat_after_me = True
+                            done_something = True
                         elif is_formel and 'text eingeben' in text:
                             interact.talk("Ab jetzt wieder Text")
                             is_formel = False
                             interact.play_sound("bleep.wav")
+                            done_something = True
                         elif starte_schreiben:
                             if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
                                 print("Es wird nicht mehr mitgeschrieben")
                                 interact.play_sound("line_end.wav")
                                 starte_schreiben = False
+                                done_something = True
                             elif is_formel:
                                 text = textreplacements.replace_in_formula_mode(text)
                                 interact.type_unicode(text)
+                                done_something = True
                             elif text:
                                 text = text + " "
                                 text = textreplacements.replace_in_text_mode(text)
                                 interact.type_unicode(text)
+                                done_something = True
                         else:
                             if text == "mitschreiben" or text == "mit schreiben":
                                 starte_schreiben = True
                                 print("Starte schreiben")
                                 interact.play_sound("bleep.wav")
+                                done_something = True
                             else:
                                 print("Sage 'mitschreiben', damit mitgeschrieben wird")
+                                done_something = True
 
+                if not ARGS.nospinner:
+                    if done_something:
+                        spinner = Halo(text='Ausführen scheint geklappt zu haben', spinner='dots')
+                        spinner.succeed()
+                    else:
+                        spinner = Halo(text='Es wurde nichts ausgeführt', spinner='dots')
+                        spinner.fail()
+                    spinner = Halo(text='Höre zu', spinner='dots')
             stream_context = model.createStream()
 
 if __name__ == '__main__':
