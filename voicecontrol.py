@@ -731,10 +731,10 @@ class AnalyzeAudio ():
                 "help": "Kopiere die aktuelle Auswahl",
                 "say": ["Kopieren"]
             },
-            "^schließe (?:fenster|elster|fester)$": {
+            "^(?:schließe (?:fenster|elster|fester))|(?:(?:fenster|elster|fester) schließen)$": {
                 "fn": "self.guitools.close_window",
                 "help": "Schließe aktuelles Fenster",
-                "say": ["Schließe Fenster"]
+                "say": ["Schließe Fenster", "Fenster schließen"]
             },
             "^einfügen$": {
                 "fn": "self.guitools.paste",
