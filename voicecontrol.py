@@ -85,11 +85,25 @@ class Features():
         self.textreplacements = textreplacements
         self.guitools = guitools
         self.radio_streams = {
-            "(?:radio )?eins": {"link": "https://www.radioeins.de/live.m3u", "name": "Radio Eins"},
-            "sachsen( radio)?": {"link": "http://avw.mdr.de/streams/284280-0_mp3_high.m3u", "name": "Sachsenradio" },
-            "deutschland\s*funk": {"link": "https://st01.sslstream.dlf.de/dlf/01/64/mp3/stream.mp3", "name": "Deutschlandfunk" }
+            "(?:radio )?eins": {
+                "link": "https://www.radioeins.de/live.m3u",
+                "name": "Radio Eins"
+            },
+            "sachsen( radio)?": {
+                "link": "http://avw.mdr.de/streams/284280-0_mp3_high.m3u",
+                "name": "Sachsenradio"
+            },
+            "deutschland\s*funk": {
+                "link": "https://st01.sslstream.dlf.de/dlf/01/64/mp3/stream.mp3",
+                "name": "Deutschlandfunk"
+            }
         }
 
+    def get_available_radio_names (self):
+        names = []
+        for key in self.radio_streams:
+            names.append(self.radio_streams[key]["name"])
+        return names
 
     def read_wikipedia_article(self, article):
         wiki_wiki = wikipediaapi.Wikipedia('de')
@@ -193,52 +207,41 @@ class Features():
     def talk_weather_tomorrow (self, place):
         datastore = self.get_weather_json(place)
         if not datastore is None:
-            maxtemp = datastore['weather'][1]["maxtempC"]
-            mintemp = datastore['weather'][1]["mintempC"]
-
-            weather_status = []
-            hourly = datastore['weather'][1]["hourly"]
-            for item in hourly:
-                this_item = item['lang_de'][0]['value']
-                if len(weather_status) == 0 or weather_status[len(weather_status) - 1] != this_item:
-                    weather_status.append(this_item)
-
-            hourly_status = ""
-            if len(weather_status) > 1:
-                hourly_status = " erst "
-
-            hourly_status = hourly_status + ", dann ".join(weather_status)
-
-            weather_string = "In %s liegt die Temperatur morgen zwischen %s und %s Grad. Über den Tag verteilt wird es %s" % (place, mintemp, maxtemp, hourly_status)
-
+            (mintemp, maxtemp, tag, hourly_status) = self.create_weather_string(datastore, 1)
+            weather_string = "In %s liegt die Temperatur morgen zwischen %s und %s Grad. %s %s" % (place, mintemp, maxtemp, tag, hourly_status)
             self.interact.talk(weather_string)
         else:
             self.interact.talk("Aktuell krieg ich die Wetterdaten aus technischen Gründen leider nicht. Tut mir leid.")
-        
+
     def talk_weather_the_day_after_tomorrow (self, place):
         datastore = self.get_weather_json(place)
         if not datastore is None:
-            maxtemp = datastore['weather'][2]["maxtempC"]
-            mintemp = datastore['weather'][2]["mintempC"]
-
-            weather_status = []
-            hourly = datastore['weather'][2]["hourly"]
-            for item in hourly:
-                this_item = item['lang_de'][0]['value']
-                if len(weather_status) == 0 or weather_status[len(weather_status) - 1] != this_item:
-                    weather_status.append(this_item)
-
-            hourly_status = ""
-            if weather_status:
-                hourly_status = "erst "
-
-            hourly_status = hourly_status + ", dann ".join(weather_status)
-
-            weather_string = "In %s liegt die Temperatur übermorgen zwischen %s und %s Grad. Über den Tag verteilt wird es %s" % (place, mintemp, maxtemp, hourly_status)
-
+            (mintemp, maxtemp, tag, hourly_status) = self.create_weather_string(datastore, 2)
+            weather_string = "In %s liegt die Temperatur übermorgen zwischen %s und %s Grad. %s %s" % (place, mintemp, maxtemp, tag, hourly_status)
             self.interact.talk(weather_string)
         else:
             self.interact.talk("Aktuell krieg ich die Wetterdaten aus technischen Gründen leider nicht. Tut mir leid.")
+
+    def create_weather_string (self, datastore, number):
+        maxtemp = datastore['weather'][number]["maxtempC"]
+        mintemp = datastore['weather'][number]["mintempC"]
+
+        weather_status = []
+        hourly = datastore['weather'][number]["hourly"]
+        for item in hourly:
+            this_item = item['lang_de'][0]['value']
+            if len(weather_status) == 0 or weather_status[len(weather_status) - 1] != this_item:
+                weather_status.append(this_item)
+
+        tag = "Es wird"
+        hourly_status = ""
+        if len(weather_status) > 1:
+            hourly_status = "erst "
+            tag = "Über den Tag verteilt wird es"
+
+        hourly_status = hourly_status + ", dann ".join(weather_status)
+
+        return (mintemp, maxtemp, tag, hourly_status)
 
     def calculate(self, text):
         math_text = self.textreplacements.replace_in_formula_mode(text)
@@ -286,8 +289,6 @@ class Features():
         ]
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
-
-
 
     def tell_joke(self):
         array = [
@@ -596,51 +597,243 @@ class AnalyzeAudio ():
         self.default_city = default_city
 
         self.regexes = {
-            "^leiser$": self.guitools.volume_down,
-            "^lauter$": self.guitools.volume_up,
-            "^(?:(?:ka(?:nn|m)st du mich hören))$": self.interact.can_you_hear_me,
-            "^(?:(?:hörst du mich))$": self.interact.do_you_hear_me,
-            "^star?te internet$": self.guitools.start_browser,
-            "^alles vorlesen$": self.features.read_aloud,
-            "^(?:diese|aktuelle?)\s*zeile\s*vorlesen$": self.features.read_line_aloud,
-            "^löschen$": self.guitools.delete,
-            "^(?:aktuelle|dieser?) zeile (?:auswählen|markieren)$": self.guitools.select_current_line,
-            "^(?:dieser?|aktuelle) zeile löschen$": self.guitools.delete_current_line,
-            "^aus\s*rechnen$": self.features.solve_equation,
-            "^wieder\s*holen$": self.guitools.repeat,
-            "^kopieren$": self.guitools.copy,
-            "^schließe (?:fenster|elster|fester)$": self.guitools.close_window,
-            "^einfügen$": self.guitools.paste,
-            "^aus\s*schneiden$": self.guitools.cut,
-            "^alles (markieren|auswählen)$": self.guitools.select_all,
-            "^alle fenster$": self.guitools.all_windows,
-            "^eingabe\s*taster?$": self.guitools.press_enter,
-            "^alles löschen$": self.guitools.mark_and_delete_all,
-            ".{0,20}fenster.*(vordergrund|fokus)$": self.guitools.say_current_window,
-            "^schließe ta[bp]$": self.guitools.close_tab,
-            "^(?:wechsel (?:fenster|elster))|(?:(?:elster|fenster) wechseln)$": self.guitools.switch_window,
-            "^wie geht es dir$": self.features.how_are_you,
-            ".*ist.*grenzwert.*$": self.features.grenzwert,
-            "^neu(?:er)? ta[bp]$": self.guitools.new_tab,
-            "^nächster ta[bp]?$": self.guitools.next_tab,
-            "^letzter ta[bp]$": self.guitools.previous_tab,
-            "^neues (?:fenster|elster)$": self.guitools.new_window,
-            ".*ende.*dich.*selbst.*": self.features.suicide,
-            "^(?:ab\s*spielen|spiele ab|pausieren)$": self.guitools.press_space,
-            "^(?:lautlos|wieder laut)$": self.guitools.toggle_volume,
-            "^rückgängig$": self.guitools.undo,
-            ".*ein(?:en)? witz": self.features.tell_joke,
-            ".*[dsl]ag?.*philosophisches": self.features.say_something_philosophical,
-            "^letztes wort löschen$": self.guitools.delete_last_word,
-            "^(?:spiel(?:er)?|[mn]ach|star?te) radio (.*)(\s+a[bn])?$": {"fn": "self.features.play_radio", "param": "text"},
-            "^(.*)(?:(?:aktuell.*bitcoin)|(?:bitcoin\s*preis))(.*)$": self.features.bitcoin_price,
-            "^star?te? doktor haus$": self.features.start_dr_house,
-            "^wikipedia\s+(.*)$": {"fn": "self.features.read_wikipedia_article", "param": "m.group(1) or 'Linux'"},
-            "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_the_day_after_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
-            "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {"fn": "self.features.talk_weather_tomorrow", "param": "m.group(1) or '" + self.default_city + "'"},
-            "^.*(?:(?:(?:gerade|jetzt)\s*wetter)|(?:wetter (?:gerade|jetzt)))(?: in (.*))?$": {"fn": "self.features.talk_current_weather", "param": "m.group(1) or '" + self.default_city+ "'"},
-            "^[wd]as (?:er)?gibt (.*)?$": {"fn": "self.features.calculate", "param": "m.group(1)"}
+            "^leiser$": {
+                "fn": "self.guitools.volume_down", 
+                "help": "Lautstärke leiser machen",
+                "say": ["leiser"]
+            },
+            "^lauter$": {
+                "fn": "self.guitools.volume_up",
+                "help": "Lautstärke lauter machen",
+                "say": ["lauter"]
+            },
+            "^(?:(?:ka(?:nn|m)st du mich hören))$": {
+                "fn": "self.interact.can_you_hear_me",
+                "help": "Antwortet, wenn das Gerät dich hören kann",
+                "say": ["Kannst du mich hören?"]
+            },
+            "^(?:(?:hörst du mich))$": {
+                "fn": "self.interact.do_you_hear_me",
+                "help": "Antwortet, wenn das Gerät dich hören kann",
+                "say": ["Hörst du mich?"]
+            },
+            "^star?te internet$": {
+                "fn": "self.guitools.start_browser",
+                "help": "Startet einen Internet-Browser",
+                "say": ["Starte Interent"]
+            },
+            "^alles vorlesen$": {
+                "fn": "self.features.read_aloud",
+                "help": "Lese vor, was gerade an markierbarem Text vor dir ist",
+                "say": ["Alles vorlesen"]
+            },
+            "^(?:diese|aktuelle?)\s*zeile\s*vorlesen$": {
+                "fn": "self.features.read_line_aloud",
+                "help": "Lese die aktuelle Zeile vor",
+                "say": ["Diese Zeile vorlesen", "Aktuelle Zeile vorlesen"]
+            },
+            "^löschen$": {
+                "fn": "self.guitools.delete",
+                "help": "Drücke die ENTF Taste",
+                "say": ["Löschen"]
+            },
+            "^(?:aktuelle|dieser?) zeile (?:auswählen|markieren)$": {
+                "fn": "self.guitools.select_current_line",
+                "help": "Aktuelle Zeile auswählen",
+                "say": ["Aktuelle Zeile auswählen", "Diese Zeile auswählen", "Aktuelle Zeile markieren", "Diese Zeile markieren"]
+            },
+            "^(?:dieser?|aktuelle) zeile löschen$": {
+                "fn": "self.guitools.delete_current_line",
+                "help": "Aktuelle Zeile löschen",
+                "say": ["Aktuelle Zeile löschen", "Diese Zeile löschen"]
+            },
+            "^aus\s*rechnen$": {
+                "fn": "self.features.solve_equation",
+                "help": "Aktuelle Zeile als Formel betrachten und ausrechnen",
+                "say": ["Ausrechnen"]
+            },
+            "^wieder\s*holen$": {
+                "fn": "self.guitools.repeat",
+                "help": "Hole die letzte rückgängig gemachte Änderung wieder",
+                "say": ["Wiederholen"]
+            },
+            "^kopieren$": {
+                "fn": "self.guitools.copy",
+                "help": "Kopiere die aktuelle Auswahl",
+                "say": ["Kopieren"]
+            },
+            "^schließe (?:fenster|elster|fester)$": {
+                "fn": "self.guitools.close_window",
+                "help": "Schließe aktuelles Fenster",
+                "say": ["Schließe Fenster"]
+            },
+            "^einfügen$": {
+                "fn": "self.guitools.paste",
+                "help": "Text aus dem Clipboard Einfügen",
+                "say": ["Einfügen"]
+            },
+            "^aus\s*schneiden$": {
+                "fn": "self.guitools.cut",
+                "help": "Aktuell markierten Text ausschneiden",
+                "say": ["Ausschneiden"]
+            },
+            "^alles (markieren|auswählen)$": {
+                "fn": "self.guitools.select_all",
+                "help": "Alles auswählen",
+                "say": ["Alles markieren", "Alles auswählen"]
+            },
+            "^alle fenster$": {
+                "fn": "self.guitools.all_windows",
+                "help": "Alle Fenster auflisten",
+                "say": ["Alle Fenster"]
+            },
+            "^eingabe\s*taster?$": {
+                "fn": "self.guitools.press_enter",
+                "help": "Drücke die Eingabetaste",
+                "say": ["Eingabetaste"]
+            },
+            "^alles löschen$": {
+                "fn": "self.guitools.mark_and_delete_all",
+                "help": "Markiert alles und löscht darauf hin alles",
+                "say": ["alles löschen"]
+            },
+            ".{0,20}fenster.*(vordergrund|fokus)$": {
+                "fn": "self.guitools.say_current_window",
+                "help": "Sagt an, welches Fenster gerade im Fokus ist",
+                "say": ["Welches Fenster ist im Fokus?", "Welches Fenster ist im Vordergrund?"]
+            },
+            "^schließe ta[bp]$": {
+                "fn": "self.guitools.close_tab",
+                "help": "Schließe Tab (drücke CTRL w)",
+                "say": ["Schließe Tab"]
+            },
+            "^(?:wechsel (?:fenster|elster))|(?:(?:elster|fenster) wechseln)$": {
+                "fn": "self.guitools.switch_window",
+                "help": "Wechsel das aktuelle Fenster (alt+tab)",
+                "say": ["Wechsel Fenster", "Fenster wechseln"]
+            },
+            "^wie geht es dir$": {
+                "fn": "self.features.how_are_you",
+                "help": "Beantwortet die Frage, wie es dem Sprachassistenten geht",
+                "say": ["Wie geht es dir?"]
+            },
+            ".*ist.*grenzwert.*$": {
+                "fn": "self.features.grenzwert",
+                "help": "Was ist der Grenzwert einer Funktion?",
+                "say": ["Was ist der Grenzwert von a/b für b gegen Unendlich?"]
+            },
+            "^neu(?:er)? ta[bp]$": {
+                "fn": "self.guitools.new_tab",
+                "help": "Öffnet einen neuen Tab",
+                "say": ["Neuer Tab"]
+            },
+            "^nächster ta[bp]?$": {
+                "fn": "self.guitools.next_tab",
+                "help": "Wechselt in den nächsten Tab",
+                "say": ["Nächster Tab"]
+            },
+            "^letzter ta[bp]$": {
+                "fn": "self.guitools.previous_tab",
+                "help": "Wechselt in den vorherigen Tab",
+                "say": ["Letzter Tab"]
+            },
+            "^neues (?:fenster|elster)$": {
+                "fn": "self.guitools.new_window",
+                "help": "Öffnet ein neues Fenster",
+                "say": ["Neues Fenster"]
+            },
+            ".*ende.*dich.*selbst.*": {
+                "fn": "self.features.suicide",
+                "help": "Beendet den Sprachassistenten",
+                "say": ["Beende dich selbst"]
+            },
+            "^(?:ab\s*spielen|spiele ab|pausieren)$": {
+                "fn": "self.guitools.press_space",
+                "help": "Drückt die Leertaste zum Abspielen bzw. Pausiren von Musik",
+                "say": ["Abspielen", "Spiele ab", "Pausieren"]
+            },
+            "^(?:lautlos|wieder laut)$": {
+                "fn": "self.guitools.toggle_volume",
+                "help": "Stellt die Lautstärke auf 0 bzw. auf 100%",
+                "say": ["Lautlos", "Wieder laut"]
+            },
+            "^rückgängig$": {
+                "fn": "self.guitools.undo",
+                "help": "Macht die letzte Aktion rückgängig",
+                "say": ["Rückgängig"]
+            },
+            ".*ein(?:en)?.*witz": {
+                "fn": "self.features.tell_joke",
+                "help": "Erzählt einen Witz",
+                "say": ["Erzähl mir einen Witz", "Erzähl mir einen weiteren Witz"]
+            },
+            ".*[dsl]ag?.*philosophisches": {
+                "fn": "self.features.say_something_philosophical",
+                "help": "Sagt etwas Philosophisches",
+                "say": ["Sag etwas Philosophisches!"]
+            },
+            "^letztes wort löschen$": {
+                "fn": "self.guitools.delete_last_word",
+                "help": "Löscht das gesamte letzte Wort",
+                "say": ["Letztes Wort löschen"]
+            },
+            "^(?:spiel(?:er)?|[mn]ach|star?te) radio (.*)(\s+a[bn])?$": {
+                "fn": "self.features.play_radio",
+                "param": "text",
+                "help": "Startet einen Radiosender. Verfügbare Namen für Radiosender: " + ', '.join(self.features.get_available_radio_names()),
+                "say": ["Spiele Radio Eins ab", "Starte Radio Deutschlandfunk", "Mach Radio Sachsen an"]
+            },
+            "^(.*)(?:(?:aktuell.*bitcoin)|(?:bitcoin\s*preis))(.*)$": {
+                "fn": "self.features.bitcoin_price",
+                "help": "Sagt den aktuellen Bitcoin-Preis in US-Dollar an",
+                "say": ["Was ist der aktuelle Bitcoin-Preis?"]
+            },
+            "^star?te? doktor haus$": {
+                "fn": "self.features.start_dr_house",
+                "help": "Startet Dr-House (nur bei mir :-) )",
+                "say": ["Starte Doktor House"]
+            },
+            "^wikipedia\s+(.*)$": {
+                "fn": "self.features.read_wikipedia_article",
+                "param": "m.group(1) or 'Linux'",
+                "help": "Liest die Zusammenfassung eines Wikipedia-Artikels vor",
+                "say": ["Wikipedia Straßenbahn"]
+            },
+            "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {
+                "fn": "self.features.talk_weather_the_day_after_tomorrow", 
+                "param": "m.group(1) or '" + self.default_city + "'",
+                "help": "Sagt das Wetter übermorgen an (normalerweise in " + self.default_city + ", aber auch in anderen Städten)",
+                "say": ["Wie wird das Wetter übermorgen?", "Wie wird das Wetter übermorgen in Hamburg?"]
+            },
+            "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {
+                "fn": "self.features.talk_weather_tomorrow", 
+                "param": "m.group(1) or '" + self.default_city + "'",
+                "help": "Sagt das Wetter morgen an (normalerweise in " + self.default_city + ", aber auch in anderen Städten)",
+                "say": ["Wie wird das Wetter morgen?", "Wie wird das Wetter morgen in Hamburg?"]
+            },
+            "^.*(?:(?:(?:gerade|jetzt).*wetter)|(?:wetter (?:gerade|jetzt))|(?:wie.*ist.*wetter))(?: in (.*))?$": {
+                "fn": "self.features.talk_current_weather", 
+                "param": "m.group(1) or '" + self.default_city+ "'",
+                "help": "Sagt das aktuelle Wetter an (normalerweise in " + self.default_city + ", aber auch in anderen Städten)",
+                "say": ["Wie ist gerade das Wetter morgen?", "Wie ist gerade das Wetter in Hamburg?"]
+            },
+            "^[wd]as (?:er)?gibt (.*)?$": {
+                "fn": "self.features.calculate",
+                "param": "m.group(1)",
+                "help": "Führt einfache Rechnungen aus",
+                "say": ["Was ergibt 5 + 10?"]
+            }
         }
+
+    def show_available_commands (self):
+        for regex in self.regexes:
+            command = self.regexes[regex]
+            helpstr = fg("white") + bg("cyan") + command["help"] + attr("reset")
+            saystr = "\n\t" + "\n\t".join(command['say']) + "\n"
+
+            command_help = helpstr + ", sage z.,B.: " + saystr
+            if command_help is not None:
+                print(command_help)
 
     def do_what_i_just_said(self, text):
         m = REMatcher(text)
@@ -649,12 +842,13 @@ class AnalyzeAudio ():
 
         for regex in self.regexes:
             if m.match(regex):
-                if type(self.regexes[regex]) is dict:
-                    fn_name = self.regexes[regex]["fn"]
+                fn_name = self.regexes[regex]["fn"]
+                param = ''
+                if "param" in self.regexes[regex]:
                     param = self.regexes[regex]["param"]
-                    eval(fn_name + "(" + param + ")")
-                else:
-                    self.regexes[regex]()
+                runcode = fn_name + "(" + param + ")"
+                blue_text(runcode)
+                eval(runcode)
                 done_something = True
 
         return done_something
@@ -831,6 +1025,10 @@ def main(ARGS):
 
     analyzeaudio = AnalyzeAudio(guitools, interact, features, "Dresden")
 
+    if ARGS.helpspeech:
+        analyzeaudio.show_available_commands()
+        sys.exit(0)
+
     print("Sage 'mitschreiben', damit mitgeschrieben wird")
     frames = vad_audio.vad_collector()
 
@@ -918,6 +1116,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Stream from microphone to DeepSpeech using VAD")
 
+    parser.add_argument('--helpspeech', action='store_true', help="Show all available speech commands")
     parser.add_argument('-v', '--vad_aggressiveness', type=int, default=3,
                         help="Set aggressiveness of VAD: an integer between 0 and 3, 0 being the least aggressive about filtering out non-speech, 3 the most aggressive. Default: 3")
     parser.add_argument('--nospinner', action='store_true',
