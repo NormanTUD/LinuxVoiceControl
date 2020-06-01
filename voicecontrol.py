@@ -540,9 +540,11 @@ class GUITools():
         self.basefeatures = BaseFeatures()
 
     def is_console(self):
+        self.interact.consolemode = True
         self.consolemode = True
 
     def is_not_console(self):
+        self.interact.consolemode = False
         self.consolemode = False
 
     def start_browser(self):
@@ -1136,6 +1138,7 @@ class VADAudio(Audio):
 
 class SpecialCommands():
     def __init__(self, analyzeaudio, interact, guitools, textreplacements, spinner):
+        self.spinner_default_write_mode = "Was du jetzt sagst wird aufgeschrieben"
         self.spinner_text_default = "Höre zu"
         self.spinner_text = self.spinner_text_default
 
@@ -1215,16 +1218,14 @@ class SpecialCommands():
                     self.spinner_text = "Du bist im Formel-Modus"
                 elif m.match("konsole.*\s+aktivier"):
                     self.guitools.is_console()
-                    self.interact.is_console()
                     self.interact.talk("Konsolenmodus aktiviert")
                     self.done_something = True
                     self.spinner_text = "Du bist im Konsolen-Modus"
                 elif m.match("(?:nicht.*konsole)|(?:konsole.*deaktivier)"):
                     self.guitools.is_not_console()
-                    self.interact.is_not_console()
                     self.interact.talk("Konsolenmodus de-aktiviert")
                     self.done_something = True
-                    self.spinner_text = "Was du jetzt sagst wird aufgeschrieben"
+                    self.spinner_text = self.spinner_default_write_mode
                 elif m.match("(?:wiederhole.*ich.*sage)|(?:sprich ([wm]ir|mehr) nach)"):
                     self.interact.talk("OK")
                     self.repeat_after_me = True
@@ -1235,7 +1236,7 @@ class SpecialCommands():
                     self.is_formel = False
                     self.interact.play_sound("bleep.wav")
                     self.done_something = True
-                    self.spinner_text = "Was du jetzt sagst wird aufgeschrieben"
+                    self.spinner_text = self.spinner_default_write_mode
                 elif self.start_writing:
                     self.write(text)
                 else:
@@ -1244,17 +1245,12 @@ class SpecialCommands():
                         print("Starte schreiben")
                         self.interact.play_sound("bleep.wav")
                         self.done_something = True
-                        self.spinner_text = "Was du jetzt sagst wird aufgeschrieben"
+                        self.spinner_text = self.spinner_default_write_mode
                     else:
                         print("Sage 'mitschreiben', damit mitgeschrieben wird")
                         self.done_something = False
         else:
             self.done_something = False
-
-
-"""
-ENDE KLASSE SpecialCommands
-"""
 
 def main(ARGS):
     # Load DeepSpeech model
