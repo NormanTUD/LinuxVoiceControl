@@ -32,6 +32,9 @@ from babel.dates import format_date, format_datetime, format_time
 import string
 from pathlib import Path
 import getpass
+import tempfile
+from datetime import datetime
+import calendar
 
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
@@ -82,6 +85,43 @@ class REMatcher(object):
         return self.rematch.group(i)
 
 class BaseFeatures():
+    def __init__(self):
+        self.original_sound_volume = self.get_current_audio_level()
+
+    def save_current_audio_level_as_original(self):
+        self.original_sound_volume = self.get_current_audio_level()
+
+    def get_unixtime(self):
+        d = datetime.utcnow()
+        unixtime = calendar.timegm(d.utctimetuple())
+        return unixtime
+
+    def run_command_get_output(self, command):
+        f = tempfile.NamedTemporaryFile(delete=False)
+        tmp = f.name
+        os.system(command + ' > ' + tmp)
+        stdout = open(tmp, 'r').read()
+        os.unlink(f.name)
+        stdout = stdout.rstrip("\n")
+        return stdout
+
+    def get_current_audio_level(self):
+        out = ''
+        command = "amixer -D pulse get Master | awk -F 'Left:|[][]' 'BEGIN {RS=\"\"}{ print $3 }'"
+
+        return self.run_command_get_output(command)
+
+    def save_original_volume_set_other_value (self, other_value):
+        self.original_sound_volume = self.get_current_audio_level()
+        self.set_audio_level(other_value)
+
+    def restore_original_sound_level(self):
+        self.set_audio_level(self.original_sound_volume)
+
+    def set_audio_level(self, volume):
+        command = "amixer set Master " + str(volume)
+        return self.run_command_get_output(command)
+
     def remove_text_in_brackets(self, text):
         ret = ''
         skip1c = 0
@@ -534,11 +574,11 @@ class TextReplacements():
         return text
 
 class Interaction():
-    def __init__ (self, vad_audio, controlkeyboard):
+    def __init__ (self, vad_audio, controlkeyboard, basefeatures):
         self.vad_audio = vad_audio
         self.controlkeyboard = controlkeyboard
         self.consolemode = False
-        self.basefeatures = BaseFeatures()
+        self.basefeatures = basefeatures
 
     def is_console(self):
         self.consolemode = True
@@ -547,6 +587,7 @@ class Interaction():
         self.consolemode = False
 
     def talk(self, something):
+        self.basefeatures.restore_original_sound_level()
         yellow_text(str(something))
         if not something == "":
             self.vad_audio.stream.stop_stream()
@@ -1249,10 +1290,22 @@ class VADAudio(Audio):
                     ring_buffer.clear()
 
 class SpecialCommands():
-    def __init__(self, analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text_default):
+    def __init__(self, analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text_default, basefeatures):
+        self.analyzeaudio = analyzeaudio
+        self.interact = interact
+        self.guitools = guitools
+        self.textreplacements = textreplacements
+        self.spinner = spinner
+        self.basefeatures = basefeatures
+
         self.spinner_default_write_mode = "Was du jetzt sagst wird aufgeschrieben"
+        self.spinner_default_command_mode = "Ich warte auf deinen Befehl"
+        self.spinner_default_repeat_mode = "Was du jetzt aussprichst wird wiederholt"
+        self.spinner_default_command_line_mode = "Du bist im Konsolenmodus"
+        self.spinner_default_equation_mode = "Du bist im Formel-Modus"
         self.spinner_text_default = spinner_text_default
         self.spinner_text = self.spinner_text_default
+        self.last_spinner_text_changed = self.basefeatures.get_unixtime()
 
         self.last_command_enabled = False
         self.enabled = False
@@ -1262,11 +1315,16 @@ class SpecialCommands():
         self.start_writing = False
         self.done_something = False
 
-        self.analyzeaudio = analyzeaudio
-        self.interact = interact
-        self.guitools = guitools
-        self.textreplacements = textreplacements
-        self.spinner = spinner
+        self.mute_volume_time = 10
+
+    def set_spinner_text (self, text):
+        self.last_spinner_text_changed = self.basefeatures.get_unixtime()
+        self.spinner_text = text
+
+    def needs_to_be_muted (self):
+        if self.spinner_text == self.spinner_default_command_mode or self.spinner_text == self.spinner_default_write_mode or self.spinner_text == self.spinner_default_repeat_mode:
+            return True
+        return False
 
     def check_if_assistants_name_has_been_said (self, text):
         if not self.enabled and assistant_name in text:
@@ -1276,16 +1334,16 @@ class SpecialCommands():
                 self.interact.talk("Ja?")
             text = text.replace(assistant_name + " ", "")
             text = text.replace(assistant_name, "")
-            self.spinner_text = "Ich warte auf deinen Befehl"
+            self.set_spinner_text(self.spinner_default_command_mode)
         return text
 
     def write(self, text):
         if text == 'nicht mehr mitschreiben' or text == 'nicht mehr mit schreiben' or text == 'nicht mit schreiben':
             print("Es wird nicht mehr mitgeschrieben")
             if self.enabled:
-                self.spinner_text = "Ich warte auf deinen Befehl"
+                self.set_spinner_text(self.spinner_default_command_mode)
             else:
-                self.spinner_text = self.spinner_text_default
+                self.set_spinner_text(self.spinner_text_default)
             self.interact.play_sound_not_ok()
             self.start_writing = False
             self.done_something = False
@@ -1301,6 +1359,13 @@ class SpecialCommands():
     def get_spinner_text(self):
         return self.spinner_text
 
+    def mute_if_neccessary(self):
+        if self.needs_to_be_muted():
+            self.basefeatures.save_original_volume_set_other_value("0%")
+        else:
+            self.basefeatures.restore_original_sound_level()
+            self.basefeatures.save_current_audio_level_as_original()
+
     def while_loop_function (self, text):
         text = " ".join(text.split())
         if not text == "":
@@ -1310,7 +1375,7 @@ class SpecialCommands():
 
             if self.repeat_after_me:
                 self.interact.talk(text)
-                self.spinner_text = self.spinner_text_default
+                self.set_spinner_text(self.spinner_text_default)
                 self.repeat_after_me = False
     
             if (self.start_writing or self.enabled) and not text == "":
@@ -1318,7 +1383,7 @@ class SpecialCommands():
 
             if self.done_something and not self.last_command_enabled:
                 self.enabled = False
-                self.spinner_text = self.spinner_text_default
+                self.set_spinner_text(self.spinner_text_default)
             else:
                 self.last_command_enabled = False
                 m = REMatcher(text)
@@ -1327,28 +1392,28 @@ class SpecialCommands():
                     self.is_formel = True
                     self.interact.play_sound_ok()
                     self.done_something = True
-                    self.spinner_text = "Du bist im Formel-Modus"
+                    self.set_spinner_text(self.spinner_default_equation_mode)
                 elif m.match("konsole.*\s+aktivier"):
                     self.guitools.is_console()
                     self.interact.talk("Konsolenmodus aktiviert")
                     self.done_something = True
-                    self.spinner_text = "Du bist im Konsolen-Modus"
+                    self.set_spinner_text(self.spinner_default_command_line_mode)
                 elif m.match("(?:nicht.*konsole)|(?:konsole.*deaktivier)"):
                     self.guitools.is_not_console()
                     self.interact.talk("Konsolenmodus de-aktiviert")
                     self.done_something = True
-                    self.spinner_text = self.spinner_default_write_mode
+                    self.set_spinner_text(self.spinner_default_write_mode)
                 elif m.match("(?:wiederhole.*ich.*sage)|(?:sprich ([wm]ir|mehr) nach)"):
                     self.interact.talk("OK")
                     self.repeat_after_me = True
                     self.done_something = True
-                    self.spinner_text = "Was du jetzt aussprichst wird wiederholt"
+                    self.set_spinner_text(self.spinner_default_repeat_mode)
                 elif self.is_formel and m.match("wie\s*der text ein\s*geben"):
                     self.interact.talk("Ab jetzt wieder Text")
                     self.is_formel = False
                     self.interact.play_sound_ok()
                     self.done_something = True
-                    self.spinner_text = self.spinner_default_write_mode
+                    self.set_spinner_text(self.spinner_default_write_mode)
                 elif self.start_writing:
                     self.write(text)
                 else:
@@ -1357,7 +1422,7 @@ class SpecialCommands():
                         print("Starte schreiben")
                         self.interact.play_sound_ok()
                         self.done_something = True
-                        self.spinner_text = self.spinner_default_write_mode
+                        self.set_spinner_text(self.spinner_default_write_mode)
                     else:
                         print("Sage 'mitschreiben', damit mitgeschrieben wird")
                         self.done_something = False
@@ -1387,7 +1452,7 @@ def main(ARGS):
 
     basefeatures = BaseFeatures()
     controlkeyboard = ControlKeyboard()
-    interact = Interaction(vad_audio, controlkeyboard)
+    interact = Interaction(vad_audio, controlkeyboard, basefeatures)
     textreplacements = TextReplacements()
     guitools = GUITools(interact, controlkeyboard)
     features = Features(interact, controlkeyboard, textreplacements, guitools)
@@ -1407,8 +1472,9 @@ def main(ARGS):
     spinner_text = "Sage " + assistant_name + " um Befehle zu erteilen"
     if not ARGS.nospinner:
         spinner = Halo(text=spinner_text, spinner='dots')
-    specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text)
+    specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text, basefeatures)
     stream_context = model.createStream()
+    basefeatures.save_current_audio_level_as_original()
 
     wav_data = bytearray()
 
