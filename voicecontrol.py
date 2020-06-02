@@ -108,6 +108,7 @@ class BaseFeatures():
     def get_current_audio_level(self):
         out = ''
         command = "amixer -D pulse get Master | awk -F 'Left:|[][]' 'BEGIN {RS=\"\"}{ print $3 }'"
+        blue_text(command)
         return self.run_command_get_output(command)
 
     def save_original_volume_set_other_value (self, other_value):
@@ -119,6 +120,7 @@ class BaseFeatures():
 
     def set_audio_level(self, volume):
         command = "amixer set Master " + str(volume)
+        blue_text(command)
         return self.run_command_get_output(command)
 
     def remove_text_in_brackets(self, text):
@@ -160,9 +162,9 @@ class BaseFeatures():
         os.system(command)
 
 class Features():
-    def __init__ (self, interact, controlkeyboard, textreplacements, guitools):
+    def __init__ (self, interact, controlkeyboard, textreplacements, guitools, basefeatures):
         self.interact = interact
-        self.basefeatures = BaseFeatures()
+        self.basefeatures = basefeatures
         self.controlkeyboard = controlkeyboard
         self.textreplacements = textreplacements
         self.guitools = guitools
@@ -590,7 +592,6 @@ class Interaction():
         self.consolemode = False
 
     def talk(self, something):
-        self.basefeatures.restore_original_sound_level()
         yellow_text(str(something))
         if not something == "":
             self.vad_audio.stream.stop_stream()
@@ -643,11 +644,11 @@ class ControlKeyboard():
         pyautogui.hotkey(*argv)
 
 class GUITools():
-    def __init__ (self, interact, controlkeyboard):
+    def __init__ (self, interact, controlkeyboard, basefeatures):
         self.interact = interact
         self.controlkeyboard = controlkeyboard
         self.consolemode = False
-        self.basefeatures = BaseFeatures()
+        self.basefeatures = basefeatures
 
     def is_console(self):
         self.interact.consolemode = True
@@ -662,7 +663,9 @@ class GUITools():
 
     def toggle_volume(self):
         self.interact.talk("OK")
-        self.basefeatures.run_system_command("amixer set Master toggle")
+        command = "amixer set Master toggle"
+        blue_text(command)
+        self.basefeatures.run_system_command(command)
 
     def volume_up (self):
         self.controlkeyboard.hotkey('volumeup')
@@ -831,7 +834,7 @@ class AnalyzeAudio ():
                 "help": "Lautstärke lauter machen",
                 "say": ["lauter"]
             },
-            "(?:(?:(?:ka(?:nn|m)st\s*)?du (?:mich|nicht) hören))$": {
+            "(?:(?:(?:(?:ka(?:nn|m)st\s*)?du )?(?:mich|nicht) hören))$": {
                 "fn": "self.interact.can_you_hear_me",
                 "help": "Antwortet, wenn das Gerät dich hören kann",
                 "say": ["Kannst du mich hören?"]
@@ -1462,8 +1465,8 @@ def main(ARGS):
     controlkeyboard = ControlKeyboard()
     interact = Interaction(vad_audio, controlkeyboard, basefeatures)
     textreplacements = TextReplacements()
-    guitools = GUITools(interact, controlkeyboard)
-    features = Features(interact, controlkeyboard, textreplacements, guitools)
+    guitools = GUITools(interact, controlkeyboard, basefeatures)
+    features = Features(interact, controlkeyboard, textreplacements, guitools, basefeatures)
     routines = Routines(guitools, interact, features, default_city)
     analyzeaudio = AnalyzeAudio(guitools, interact, features, default_city, routines)
 
@@ -1482,7 +1485,6 @@ def main(ARGS):
         spinner = Halo(text=spinner_text, spinner='dots')
     specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text, basefeatures)
     stream_context = model.createStream()
-    basefeatures.save_current_audio_level_as_original()
 
     wav_data = bytearray()
 
