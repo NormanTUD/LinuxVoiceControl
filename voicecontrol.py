@@ -62,7 +62,7 @@ home = str(Path.home())
 assistant_name_file = home + "/.assistant_name"
 default_city_file = home + "/.default_city"
 ssh_x_server = home + "/.ssh_x_server"
-yellow_text("Add " + ssh_x_server + " file with login credentials if you want to access X11 related data from another computer. Don't forget to make ssh passwordless then!")
+yellow_text("Add " + ssh_x_server + " file with login credentials if you want to access X11 related data from another computer (like 'user@ip'). Don't forget to make ssh passwordless then!")
 ssh_x_server_connect = read_first_line_of_file_if_exists(ssh_x_server, "ssh server", getpass.getuser() + "@localhost")
 
 assistant_name = read_first_line_of_file_if_exists(assistant_name_file, "Assistentenname", "juli")
