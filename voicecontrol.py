@@ -108,7 +108,6 @@ class BaseFeatures():
     def get_current_audio_level(self):
         out = ''
         command = "amixer -D pulse get Master | awk -F 'Left:|[][]' 'BEGIN {RS=\"\"}{ print $3 }'"
-
         return self.run_command_get_output(command)
 
     def save_original_volume_set_other_value (self, other_value):
@@ -422,6 +421,10 @@ class Features():
     def random_string(self, string_length=16):
         letters = string.ascii_letters + string.digits
         return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(string_length))
+
+    def say_current_sound_volume(self):
+        audio_level = self.basefeatures.get_current_audio_level()
+        self.interact.talk(audio_level)
 
     def create_password(self):
         random_string = self.random_string(25)
@@ -1104,6 +1107,11 @@ class AnalyzeAudio ():
                 "fn": "self.features.create_password",
                 "help": "Erstelle ein zufälliges Passwort",
                 "say": "Erstelle Passwort"
+            },
+            "laut\s*st.*rke": {
+                "fn": "self.features.say_current_sound_volume",
+                "help": "Sagt die aktuelle Lautstärke",
+                "say": "Wie ist die aktuelle Lautstärke?"
             }
         }
 
