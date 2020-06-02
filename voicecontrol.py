@@ -1,5 +1,13 @@
 # -- coding: utf8 --
 
+"""
+TODO:
+    - X11-Check vorm Mitschreiben
+    - Nach assistant_name sagen nur 10 sek Mithören ob Befehl kommt, danach wieder schlafen
+    - Steckdose ansteuern
+    - Auf Raspi testen
+"""
+
 import psutil
 import time, logging
 from datetime import datetime
