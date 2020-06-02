@@ -1389,7 +1389,7 @@ def main(ARGS):
     if ARGS.helpspeech:
         analyzeaudio.show_available_commands()
         sys.exit(0)
-    interact.talk(assistant_name + " ist bereit")
+    interact.talk("Mein Name ist " + assistant_name + " und ich stehe bereit")
 
     print("Sage 'mitschreiben', damit mitgeschrieben wird")
     frames = vad_audio.vad_collector()
