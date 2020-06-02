@@ -1,5 +1,6 @@
 # -- coding: utf8 --
 
+import psutil
 import time, logging
 from datetime import datetime
 import threading, collections, queue, os, os.path
@@ -239,12 +240,19 @@ class Features():
     def grenzwert(self):
         self.interact.talk("Seh ich aus wie WolframAlpha? Diese Aufgabe ist mir viel zu schwer")
 
+    def stop_radio(self):
+        this_pid = os.getpid()
+        parent = psutil.Process(this_pid)
+        for child in parent.children(recursive=True):
+            if not child.pid == this_pid:
+                child.kill()
+
     def play_radio (self, text):
         radioname = '';
 
         m = REMatcher(text)
 
-        if m.match(r"(?:spiel(?:er)?|[nm]ach|star?te) radio (.+)(\s+a[nb])?"):
+        if m.match(r"(?:(?:v|sp)iel(?:e?r?)?|[nm]ach|star?te) radio (.+)(\s+a[nb])?"):
             radioname = m.group(1)
         else:
             radioname = text
@@ -259,10 +267,15 @@ class Features():
                     radio_name = self.radio_streams[regex]["name"]
 
         if radio_stream is not None:
-            self.interact.talk("Ich spiele " + str(radio_name) + " ab, drücke S T R G C um abzubrechen")
-            self.interact.vad_audio.stream.stop_stream()
-            self.basefeatures.run_system_command("play " + str(radio_stream))
-            self.interact.vad_audio.stream.start_stream()
+            self.interact.talk("Ich spiele " + str(radio_name) + " ab")
+            #self.interact.vad_audio.stream.stop_stream()
+            newpid = os.fork()
+            if newpid == 0:
+                self.basefeatures.run_system_command("play " + str(radio_stream))
+            else:
+                pids = (os.getpid(), newpid)
+                print("Forked process, parent: %d, child: %d\n" % pids)
+            #self.interact.vad_audio.stream.start_stream()
         else:
             self.interact.talk("Das Radio mit dem Namen " + str(radioname) + " ist mir nicht bekannt")
 
@@ -1050,7 +1063,12 @@ class AnalyzeAudio ():
                 "help": "Löscht das gesamte letzte Wort",
                 "say": ["Letztes Wort löschen"]
             },
-            "^(?:spiel(?:er)?|[mn]ach|star?te) radio (.*)(\s+a[bn])?$": {
+            "(?:stop(?:p?en?)?.*radio)|(?:(?:ra)?dio.*stop(?:p?en?)?)|(?:(?:be)?ende.*radio)|(?:(?:ra)?dio.*ende)": {
+                "fn": "self.features.stop_radio",
+                "help": "Stoppe das aktuell spielende Radio",
+                "say": ["Stoppe Radio", "Radio stoppen", "Radio beenden", "Beende Radio"]
+            },
+            "^(?:(?:v|sp)iel(?:e?r?)?|[mn]ach|star?te) radio (.*)(\s+a[bn])?$": {
                 "fn": "self.features.play_radio",
                 "param": "text",
                 "help": "Startet einen Radiosender. Verfügbare Namen für Radiosender: " + ', '.join(self.features.get_available_radio_names()),
