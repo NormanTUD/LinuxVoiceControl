@@ -31,6 +31,7 @@ from datetime import date, datetime, time
 from babel.dates import format_date, format_datetime, format_time
 import string
 from pathlib import Path
+import getpass
 
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
@@ -60,6 +61,9 @@ def read_first_line_of_file_if_exists (filename, name, default):
 home = str(Path.home())
 assistant_name_file = home + "/.assistant_name"
 default_city_file = home + "/.default_city"
+ssh_x_server = home + "/.ssh_x_server"
+yellow_text("Add " + ssh_x_server + " file with login credentials if you want to access X11 related data from another computer. Don't forget to make ssh passwordless then!")
+ssh_x_server_connect = read_first_line_of_file_if_exists(ssh_x_server, "ssh server", getpass.getuser() + "@localhost")
 
 assistant_name = read_first_line_of_file_if_exists(assistant_name_file, "Assistentenname", "juli")
 default_city = read_first_line_of_file_if_exists(default_city_file, "Default-City", "Dresden")
@@ -636,7 +640,11 @@ class GUITools():
         self.say_current_window()
 
     def get_current_window (self):
-        out = check_output(["xdotool", "getwindowfocus", "getwindowname"])
+        out = b''
+        if os.path.isfile(ssh_x_server):
+            out = check_output(['ssh', ssh_x_server_connect, 'env DISPLAY=:0 XAUTHORITY=/home/$USER/.Xauthority xdotool getwindowfocus getwindowname'])
+        else:
+            out = check_output(["xdotool", "getwindowfocus", "getwindowname"])
         this_str = out.decode("utf-8")
         return this_str
 
