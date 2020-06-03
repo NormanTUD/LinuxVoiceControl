@@ -58,17 +58,6 @@ def yellow_text(string):
 def blue_text(string):
     print(str(fg('white')) + str(bg('blue')) + str(string) + str(attr('reset')))
 
-def read_first_line_of_file_if_exists (filename, name, default):
-    if os.path.isfile(filename):
-        with open(filename) as f:
-            first_line = f.readline()
-            first_line = first_line.replace("\n", "")
-            return first_line
-    else:
-        red_text("Die Datei " + filename + " existiert nicht. Typ: " + str(name) + ", Default-Wert: " + str(default));
-
-    return default
-
 
 
 logging.basicConfig(level=20)
@@ -87,6 +76,37 @@ class REMatcher(object):
 class BaseFeatures():
     def __init__(self):
         self.original_sound_volume = self.get_current_audio_level()
+        self.home = str(Path.home())
+        self.assistant_name_file = self.home + "/.assistant_name"
+        self.default_city_file = self.home + "/.default_city"
+        self.ssh_x_server = self.home + "/.ssh_x_server"
+
+    def get_ssh_x_server (self):
+        return self.ssh_x_server 
+
+    def get_ssh_x_server_connect(self):
+        yellow_text("Add " + self.ssh_x_server + " file with login credentials if you want to access X11 related data from another computer (like 'user@ip'). Don't forget to make ssh passwordless then!")
+        ssh_x_server_connect = self.read_first_line_of_file_if_exists(self.ssh_x_server, "ssh server", getpass.getuser() + "@localhost")
+        return ssh_x_server_connect
+
+    def get_assistant_name(self):
+        assistant_name = self.read_first_line_of_file_if_exists(self.assistant_name_file, "Assistentenname", "juli")
+        return assistant_name
+
+    def get_default_city(self):
+        default_city = self.read_first_line_of_file_if_exists(self.default_city_file, "Default-City", "Dresden")
+        return default_city;
+
+    def read_first_line_of_file_if_exists (self, filename, name, default):
+        if os.path.isfile(filename):
+            with open(filename) as f:
+                first_line = f.readline()
+                first_line = first_line.replace("\n", "")
+                return first_line
+        else:
+            red_text("Die Datei " + filename + " existiert nicht. Typ: " + str(name) + ", Default-Wert: " + str(default));
+
+        return default
 
     def x_server_is_running(self):
         self.run_command_get_output("echo $DISPLAY")
@@ -657,13 +677,11 @@ class ControlKeyboard():
         pyautogui.hotkey(*argv)
 
 class GUITools():
-    def __init__ (self, interact, controlkeyboard, basefeatures, ssh_x_server, ssh_x_server_connect):
+    def __init__ (self, interact, controlkeyboard, basefeatures):
         self.interact = interact
         self.controlkeyboard = controlkeyboard
         self.consolemode = False
         self.basefeatures = basefeatures
-        self.ssh_x_server = ssh_x_server
-        self.ssh_x_server_connect = ssh_x_server_connect
 
     def is_console(self):
         self.interact.consolemode = True
@@ -703,8 +721,8 @@ class GUITools():
 
     def get_current_window (self):
         out = b''
-        if os.path.isfile(self.ssh_x_server):
-            out = check_output(['ssh', ssh_x_server_connect, 'env DISPLAY=:0 XAUTHORITY=/home/$USER/.Xauthority xdotool getwindowfocus getwindowname'])
+        if os.path.isfile(self.basefeatures.get_ssh_x_server()):
+            out = check_output(['ssh', self.basefeatures.get_ssh_x_server_connect(), 'env DISPLAY=:0 XAUTHORITY=/home/$USER/.Xauthority xdotool getwindowfocus getwindowname'])
         else:
             out = check_output(["xdotool", "getwindowfocus", "getwindowname"])
         this_str = out.decode("utf-8")
@@ -782,27 +800,25 @@ class GUITools():
         self.controlkeyboard.hotkey('space')
 
 class Routines():
-    def __init__ (self, guitools, interact, features, this_default_city):
+    def __init__ (self, guitools, interact, features):
         self.guitools = guitools
         self.interact = interact
         self.features = features
-        self.default_city = this_default_city
 
     def morning_routine(self):
         self.interact.talk("Guten Morgen")
         self.features.talk_current_date()
         self.features.talk_calendar_week()
-        self.features.talk_current_weather(self.default_city)
+        self.features.talk_current_weather(self.features.basefeatures.get_default_city())
         self.features.play_radio("radio eins")
         
 
 class AnalyzeAudio ():
-    def __init__ (self, guitools, interact, features, default_city, routines):
+    def __init__ (self, guitools, interact, features, routines):
         self.guitools = guitools
         self.interact = interact
         self.features = features
         self.routines = routines
-        self.default_city = default_city
         self.regexes = {
             "^(?:(?:wiederhole was ich sage)|(?:sprich [wm]ir nach))$": {
                 "isfake": 1,
@@ -1094,20 +1110,20 @@ class AnalyzeAudio ():
             },
             "^.*(?:(?:wetter über\s*morgen)|(?:über\s*morgen.* wetter))(?: in (.*))?$": {
                 "fn": "self.features.talk_weather_the_day_after_tomorrow", 
-                "param": "m.group(1) or '" + self.default_city + "'",
-                "help": "Sagt das Wetter übermorgen an (normalerweise in " + self.default_city + ", aber auch in anderen Städten)",
+                "param": "m.group(1) or '" + self.features.basefeatures.get_default_city() + "'",
+                "help": "Sagt das Wetter übermorgen an (normalerweise in " + self.features.basefeatures.get_default_city() + ", aber auch in anderen Städten)",
                 "say": ["Wie wird das Wetter übermorgen?", "Wie wird das Wetter übermorgen in Hamburg?"]
             },
             "^.*(?:(?:wetter morgen)|(?:morgen.* wetter))(?: in (.*))?$": {
                 "fn": "self.features.talk_weather_tomorrow", 
-                "param": "m.group(1) or '" + self.default_city + "'",
-                "help": "Sagt das Wetter morgen an (normalerweise in " + self.default_city + ", aber auch in anderen Städten)",
+                "param": "m.group(1) or '" + self.features.basefeatures.get_default_city() + "'",
+                "help": "Sagt das Wetter morgen an (normalerweise in " + self.features.basefeatures.get_default_city() + ", aber auch in anderen Städten)",
                 "say": ["Wie wird das Wetter morgen?", "Wie wird das Wetter morgen in Hamburg?"]
             },
             "^.*(?:(?:(?:gerade|jetzt).*wetter)|(?:wetter (?:gerade|jetzt))|(?:wie.*ist.*wetter))(?: in (.*))?$": {
                 "fn": "self.features.talk_current_weather", 
-                "param": "m.group(1) or '" + self.default_city+ "'",
-                "help": "Sagt das aktuelle Wetter an (normalerweise in " + self.default_city + ", aber auch in anderen Städten)",
+                "param": "m.group(1) or '" + self.features.basefeatures.get_default_city() + "'",
+                "help": "Sagt das aktuelle Wetter an (normalerweise in " + self.features.basefeatures.get_default_city() + ", aber auch in anderen Städten)",
                 "say": ["Wie ist gerade das Wetter morgen?", "Wie ist gerade das Wetter in Hamburg?"]
             },
             "^[wd]as (?:er)?gibt (.*)?$": {
@@ -1330,14 +1346,13 @@ class VADAudio(Audio):
                     ring_buffer.clear()
 
 class SpecialCommands():
-    def __init__(self, analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text_default, basefeatures, assistant_name):
+    def __init__(self, analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text_default, basefeatures):
         self.analyzeaudio = analyzeaudio
         self.interact = interact
         self.guitools = guitools
         self.textreplacements = textreplacements
         self.spinner = spinner
         self.basefeatures = basefeatures
-        self.assistant_name = assistant_name
 
         self.spinner_default_write_mode = "Was du jetzt sagst wird aufgeschrieben"
         self.spinner_default_command_mode = "Ich warte auf deinen Befehl"
@@ -1383,13 +1398,13 @@ class SpecialCommands():
         return False
 
     def check_if_assistants_name_has_been_said (self, text):
-        if not self.enabled and self.assistant_name in text:
+        if not self.enabled and self.basefeatures.get_assistant_name() in text:
             self.enabled = True
             self.last_command_enabled = True
-            if text == self.assistant_name:
+            if text == self.basefeatures.get_assistant_name():
                 self.interact.talk("Ja?")
-            text = text.replace(self.assistant_name + " ", "")
-            text = text.replace(self.assistant_name, "")
+            text = text.replace(self.basefeatures.get_assistant_name() + " ", "")
+            text = text.replace(self.basefeatures.get_assistant_name(), "")
             self.set_spinner_text(self.spinner_default_command_mode)
             self.assistant_name_said_time = self.basefeatures.get_unixtime()
         return text
@@ -1500,18 +1515,9 @@ def main(ARGS):
         ARGS.model = os.path.join(model_dir, 'output_graph.pb')
         ARGS.scorer = os.path.join(model_dir, ARGS.scorer)
 
-    home = str(Path.home())
-    assistant_name_file = home + "/.assistant_name"
-    default_city_file = home + "/.default_city"
-    ssh_x_server = home + "/.ssh_x_server"
-    yellow_text("Add " + ssh_x_server + " file with login credentials if you want to access X11 related data from another computer (like 'user@ip'). Don't forget to make ssh passwordless then!")
-    ssh_x_server_connect = read_first_line_of_file_if_exists(ssh_x_server, "ssh server", getpass.getuser() + "@localhost")
 
-    assistant_name = read_first_line_of_file_if_exists(assistant_name_file, "Assistentenname", "juli")
-    default_city = read_first_line_of_file_if_exists(default_city_file, "Default-City", "Dresden")
 
     print('Initialisiere Modell...')
-    green_text("Sage " + assistant_name + " um den Assistenten zu aktivieren")
     logging.info("ARGS.model: %s", ARGS.model)
     model = deepspeech.Model(ARGS.model)
     if ARGS.scorer:
@@ -1525,27 +1531,30 @@ def main(ARGS):
                          file=ARGS.file)
 
     basefeatures = BaseFeatures()
+
     controlkeyboard = ControlKeyboard()
     interact = Interaction(vad_audio, controlkeyboard, basefeatures)
     textreplacements = TextReplacements()
-    guitools = GUITools(interact, controlkeyboard, basefeatures, ssh_x_server, ssh_x_server_connect)
+    guitools = GUITools(interact, controlkeyboard, basefeatures)
     features = Features(interact, controlkeyboard, textreplacements, guitools, basefeatures)
-    routines = Routines(guitools, interact, features, default_city)
-    analyzeaudio = AnalyzeAudio(guitools, interact, features, default_city, routines)
+    routines = Routines(guitools, interact, features)
+    analyzeaudio = AnalyzeAudio(guitools, interact, features, routines)
 
     if ARGS.helpspeech:
         analyzeaudio.show_available_commands()
         sys.exit(0)
-    interact.talk("Mein Name ist " + assistant_name + " und ich stehe bereit")
+
+    interact.talk("Mein Name ist " + basefeatures.get_assistant_name() + " und ich stehe bereit")
+    green_text("Sage " + basefeatures.get_assistant_name() + " um den Assistenten zu aktivieren")
 
     print("Sage 'mitschreiben', damit mitgeschrieben wird")
     frames = vad_audio.vad_collector()
 
     # Stream from microphone to DeepSpeech using VAD
     spinner = None
-    spinner_text = "Sage " + assistant_name + " um Befehle zu erteilen"
+    spinner_text = "Sage " + basefeatures.get_assistant_name() + " um Befehle zu erteilen"
     spinner = Halo(text=spinner_text, spinner='dots')
-    specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text, basefeatures, assistant_name)
+    specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text, basefeatures)
     stream_context = model.createStream()
 
     vad_audio.set_specialcommands(specialcommands)
