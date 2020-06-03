@@ -285,14 +285,12 @@ class Features():
 
         if radio_stream is not None:
             self.interact.talk("Ich spiele " + str(radio_name) + " ab")
-            #self.interact.vad_audio.stream.stop_stream()
             newpid = os.fork()
             if newpid == 0:
                 self.basefeatures.run_system_command("play " + str(radio_stream))
             else:
                 pids = (os.getpid(), newpid)
                 print("Forked process, parent: %d, child: %d\n" % pids)
-            #self.interact.vad_audio.stream.start_stream()
         else:
             self.interact.talk("Das Radio mit dem Namen " + str(radioname) + " ist mir nicht bekannt")
 
