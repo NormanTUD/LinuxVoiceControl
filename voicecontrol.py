@@ -1486,7 +1486,7 @@ class SpecialCommands():
                 else:
                     if m.match("^mit\s*schreiben$"):
                         self.start_writing = True
-                        print("Starte schreiben")
+                        logging.info("Starte schreiben")
                         self.interact.play_sound_ok()
                         self.done_something = True
                         self.set_spinner_text(self.spinner_default_write_mode)
@@ -1537,8 +1537,7 @@ def main(ARGS):
     # Stream from microphone to DeepSpeech using VAD
     spinner = None
     spinner_text = "Sage " + assistant_name + " um Befehle zu erteilen"
-    if not ARGS.nospinner:
-        spinner = Halo(text=spinner_text, spinner='dots')
+    spinner = Halo(text=spinner_text, spinner='dots')
     specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text, basefeatures)
     stream_context = model.createStream()
 
@@ -1576,8 +1575,6 @@ if __name__ == '__main__':
     parser.add_argument('--helpspeech', action='store_true', help="Show all available speech commands")
     parser.add_argument('-v', '--vad_aggressiveness', type=int, default=3,
                         help="Set aggressiveness of VAD: an integer between 0 and 3, 0 being the least aggressive about filtering out non-speech, 3 the most aggressive. Default: 3")
-    parser.add_argument('--nospinner', action='store_true',
-                        help="Disable spinner")
     parser.add_argument('-w', '--savewav',
                         help="Save .wav files of utterences to given directory")
     parser.add_argument('-f', '--file',
