@@ -81,6 +81,13 @@ class BaseFeatures():
         self.default_city_file = self.home + "/.default_city"
         self.ssh_x_server = self.home + "/.ssh_x_server"
 
+    def has_x_server (self):
+        retval = os.environ.get('DISPLAY')
+        if retval is None:
+            return False
+        else:
+            return True
+
     def get_ssh_x_server (self):
         return self.ssh_x_server 
 
@@ -622,6 +629,8 @@ class Interaction():
         self.consolemode = False
         self.basefeatures = basefeatures
 
+        self.ssh_x_server_connect = self.basefeatures.get_ssh_x_server_connect()
+
     def is_console(self):
         self.consolemode = True
 
@@ -662,11 +671,14 @@ class Interaction():
         self.vad_audio.stream.start_stream()
 
     def type_unicode(self, word):
-        self.controlkeyboard.copy(word)
-        if self.consolemode:
-            self.controlkeyboard.hotkey("ctrl", "shift", "v")
+        if self.basefeatures.has_x_server():
+            self.controlkeyboard.copy(word)
+            if self.consolemode:
+                self.controlkeyboard.hotkey("ctrl", "shift", "v")
+            else:
+                self.controlkeyboard.hotkey("ctrl", "v")
         else:
-            self.controlkeyboard.hotkey("ctrl", "v")
+            print("No X11")
 
 class ControlKeyboard():
     def copy(self, word):
@@ -815,7 +827,6 @@ class Routines():
         self.features.talk_calendar_week()
         self.features.talk_current_weather(self.features.basefeatures.get_default_city())
         self.features.play_radio(None, "radio eins")
-        
 
 class AnalyzeAudio ():
     def __init__ (self, guitools, interact, features, routines):
