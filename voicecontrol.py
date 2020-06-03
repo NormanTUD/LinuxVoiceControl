@@ -678,7 +678,7 @@ class Interaction():
             else:
                 self.controlkeyboard.hotkey("ctrl", "v")
         else:
-            print("No X11")
+            red_text("No X11")
 
 class ControlKeyboard():
     def copy(self, word):
