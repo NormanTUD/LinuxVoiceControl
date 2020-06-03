@@ -170,6 +170,9 @@ class BaseFeatures():
         blue_text(command)
         os.system(command)
 
+
+
+
 class Features():
     def __init__ (self, interact, controlkeyboard, textreplacements, guitools, basefeatures):
         self.interact = interact
@@ -191,6 +194,14 @@ class Features():
                 "name": "Deutschlandfunk"
             }
         }
+
+    def speak_system_command(self, command):
+        pico2wave = " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav"
+        full_command = command + pico2wave
+        blue_text(full_command)
+        self.interact.vad_audio.stream.stop_stream()
+        self.basefeatures.run_system_command(full_command)
+        self.interact.vad_audio.stream.start_stream()
 
     def get_weekday(self):
         today = date.today()
@@ -241,9 +252,7 @@ class Features():
         self.basefeatures.run_system_command("vlc ~/mailserver/filme_und_serien/Dr-House/")
 
     def bitcoin_price (self):
-        self.interact.vad_audio.stream.stop_stream()
-        self.basefeatures.run_system_command('echo "Ein Bitcoin = $(curl -s https://api.coindesk.com/v1/bpi/currentprice/usd.json | grep -o \'rate\\":\\"[^\\"]*\' | cut -d\\" -f3 | sed -e \"s/\..*//\") US Dollar" | sed -e "s/\,//" |  pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
-        self.interact.vad_audio.stream.start_stream()
+        self.speak_system_command('echo "Ein Bitcoin = $(curl -s https://api.coindesk.com/v1/bpi/currentprice/usd.json | grep -o \'rate\\":\\"[^\\"]*\' | cut -d\\" -f3 | sed -e \"s/\..*//\") US Dollar" | sed -e "s/\,//"')
 
     def grenzwert(self):
         self.interact.talk("Seh ich aus wie WolframAlpha? Diese Aufgabe ist mir viel zu schwer")
@@ -392,10 +401,8 @@ class Features():
         m = REMatcher(math_text)
         if m.match("^\d+(?:,\d+)?((\+|-|\*|/)\d+(?:,\d+)?)$"):
             self.controlkeyboard.copy(math_text)
-            self.interact.vad_audio.stream.stop_stream()
             self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
-            self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /g" | sed -e "s/-/ minus /g" | sed -e "s/\/ durch //g" | sed -e "s/^/' + str(math_text) + ' gleich/" | sed -e "s/\\*/ mal /"  | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
-            self.interact.vad_audio.stream.start_stream()
+            self.speak_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /g" | sed -e "s/-/ minus /g" | sed -e "s/\/ durch //g" | sed -e "s/^/' + str(math_text) + ' gleich/" | sed -e "s/\\*/ mal /"')
         else:
             red_text("Erkannt: " + str(math_text))
             self.interact.talk("Diese Rechnung ist mir zu kompliziert oder ich habe sie nicht richtig verstanden");
@@ -404,10 +411,7 @@ class Features():
         self.controlkeyboard.hotkey('home')
         self.controlkeyboard.hotkey('shift', 'end')
         self.controlkeyboard.hotkey('ctrl', 'c')
-        self.interact.vad_audio.stream.stop_stream()
-        self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /"')
-        self.basefeatures.run_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /" | sed -e "s/-/ minus /" | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
-        self.interact.vad_audio.stream.start_stream()
+        self.speak_system_command('qalc -t $(xsel --clipboard) | sed -e "s/ or / oder /" | sed -e "s/-/ minus /"')
 
     def read_aloud(self):
         self.controlkeyboard.hotkey('ctrl', 'a')
@@ -415,9 +419,7 @@ class Features():
         self.controlkeyboard.hotkey('ctrl', 'a')
         self.controlkeyboard.hotkey('ctrl', 'c')
 
-        self.interact.vad_audio.stream.stop_stream()
-        self.basefeatures.run_system_command('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
-        self.interact.vad_audio.stream.start_stream()
+        self.speak_system_command('xsel --clipboard | tr "\n" " "')
 
     def lalelu (self):
         self.interact.talk("Nur der Mann im Mond hört zu")
@@ -428,9 +430,7 @@ class Features():
     def read_line_aloud(self):
         self.guitools.select_current_line()
         self.controlkeyboard.hotkey('ctrl', 'c')
-        self.interact.vad_audio.stream.stop_stream()
-        self.basefeatures.run_system_command('xsel --clipboard | tr "\n" " " | pico2wave --lang de-DE --wave /tmp/Test.wav ; play /tmp/Test.wav; rm /tmp/Test.wav')
-        self.interact.vad_audio.stream.start_stream()
+        self.speak_system_command('xsel --clipboard | tr "\n" " "')
 
     def say_something_philosophical (self):
         array = [
