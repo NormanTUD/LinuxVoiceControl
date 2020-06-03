@@ -276,14 +276,18 @@ class Features():
         parent = psutil.Process(this_pid)
         for child in parent.children(recursive=True):
             if not child.pid == this_pid:
-                child.kill()
+                try:
+                    child.kill()
+                except Exception as e:
+                    print(str(e))
 
-    def play_radio (self, text):
+    def play_radio (self, regex, text):
         radioname = '';
 
         m = REMatcher(text)
 
-        if m.match(r"(?:(?:v|sp)iel(?:e?r?)?|[nm]ach|star?te) radio (.+)(\s+a[nb])?"):
+        #if m.match(r"(?:(?:v|sp)iel(?:e?r?)?|[nm]ach|star?te) radio (.+)(\s+a[nb])?"):
+        if regex is not None and m.match(regex):
             radioname = m.group(1)
         else:
             radioname = text
@@ -810,7 +814,7 @@ class Routines():
         self.features.talk_current_date()
         self.features.talk_calendar_week()
         self.features.talk_current_weather(self.features.basefeatures.get_default_city())
-        self.features.play_radio("radio eins")
+        self.features.play_radio(None, "radio eins")
         
 
 class AnalyzeAudio ():
@@ -1088,7 +1092,7 @@ class AnalyzeAudio ():
             },
             "^(?:(?:v|sp)iel(?:e?r?)?|[mn]ach|star?te) radio (.*)(\s+a[bn])?$": {
                 "fn": "self.features.play_radio",
-                "param": "text",
+                "param": "regex, text",
                 "help": "Startet einen Radiosender. Verfügbare Namen für Radiosender: " + ', '.join(self.features.get_available_radio_names()),
                 "say": ["Spiele Radio Eins ab", "Starte Radio Deutschlandfunk", "Mach Radio Sachsen an"]
             },
