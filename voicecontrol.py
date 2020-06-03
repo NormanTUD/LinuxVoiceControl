@@ -1349,8 +1349,15 @@ class SpecialCommands():
         self.is_formel = False
         self.start_writing = False
         self.done_something = False
+        self.assistant_name_said_time = None
 
-        self.mute_volume_time = 10
+        self.timeout = 10
+
+    def get_assistant_name_said_time(self):
+        if self.assistant_name_said_time is not None:
+            return self.assistant_name_said_time
+        else:
+            return 0
 
     def set_spinner_text (self, text):
         self.last_spinner_text_changed = self.basefeatures.get_unixtime()
@@ -1370,6 +1377,7 @@ class SpecialCommands():
             text = text.replace(assistant_name + " ", "")
             text = text.replace(assistant_name, "")
             self.set_spinner_text(self.spinner_default_command_mode)
+            self.assistant_name_said_time = self.basefeatures.get_unixtime()
         return text
 
     def write(self, text):
@@ -1403,6 +1411,14 @@ class SpecialCommands():
 
     def while_loop_function (self, text):
         text = " ".join(text.split())
+
+        if self.enabled:
+            assistant_name_seconds_ago = self.basefeatures.get_unixtime() - self.get_assistant_name_said_time()
+            if not assistant_name_seconds_ago < self.timeout:
+                self.enabled = False
+                red_text("Habe etwas gehört, aber der Timeout ist abgelaufen")
+                self.set_spinner_text(self.spinner_text_default)
+
         if not text == "":
             green_text("Recognized: >>>%s<<<" % text)
 
@@ -1414,7 +1430,13 @@ class SpecialCommands():
                 self.repeat_after_me = False
     
             if (self.start_writing or self.enabled) and not text == "":
-                self.done_something = self.analyzeaudio.do_what_i_just_said(text)
+                assistant_name_seconds_ago = self.basefeatures.get_unixtime() - self.get_assistant_name_said_time()
+                if self.start_writing or assistant_name_seconds_ago < self.timeout:
+                    self.done_something = self.analyzeaudio.do_what_i_just_said(text)
+                elif self.enabled and not self.start_writing:
+                    self.enabled = False
+                    red_text("Habe etwas gehört, aber der Timeout ist abgelaufen")
+                    self.set_spinner_text(self.spinner_text_default)
 
             if self.done_something and not self.last_command_enabled:
                 self.enabled = False
@@ -1519,6 +1541,7 @@ def main(ARGS):
                 spinner.start()
             logging.debug("streaming frame")
             stream_context.feedAudioContent(np.frombuffer(frame, np.int16))
+            specialcommands.while_loop_function("")
             if ARGS.savewav:
                 wav_data.extend(frame)
         else:
