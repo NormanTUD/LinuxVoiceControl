@@ -3,7 +3,6 @@
 """
 TODO:
     - X11-Check vorm Mitschreiben
-    - Nach assistant_name sagen nur 10 sek Mithören ob Befehl kommt, danach wieder schlafen
     - Steckdose ansteuern
     - Auf Raspi testen
 """
@@ -70,15 +69,7 @@ def read_first_line_of_file_if_exists (filename, name, default):
 
     return default
 
-home = str(Path.home())
-assistant_name_file = home + "/.assistant_name"
-default_city_file = home + "/.default_city"
-ssh_x_server = home + "/.ssh_x_server"
-yellow_text("Add " + ssh_x_server + " file with login credentials if you want to access X11 related data from another computer (like 'user@ip'). Don't forget to make ssh passwordless then!")
-ssh_x_server_connect = read_first_line_of_file_if_exists(ssh_x_server, "ssh server", getpass.getuser() + "@localhost")
 
-assistant_name = read_first_line_of_file_if_exists(assistant_name_file, "Assistentenname", "juli")
-default_city = read_first_line_of_file_if_exists(default_city_file, "Default-City", "Dresden")
 
 logging.basicConfig(level=20)
 
@@ -96,6 +87,9 @@ class REMatcher(object):
 class BaseFeatures():
     def __init__(self):
         self.original_sound_volume = self.get_current_audio_level()
+
+    def x_server_is_running(self):
+        self.run_command_get_output("echo $DISPLAY")
 
     def save_current_audio_level_as_original(self):
         self.original_sound_volume = self.get_current_audio_level()
@@ -663,11 +657,13 @@ class ControlKeyboard():
         pyautogui.hotkey(*argv)
 
 class GUITools():
-    def __init__ (self, interact, controlkeyboard, basefeatures):
+    def __init__ (self, interact, controlkeyboard, basefeatures, ssh_x_server, ssh_x_server_connect):
         self.interact = interact
         self.controlkeyboard = controlkeyboard
         self.consolemode = False
         self.basefeatures = basefeatures
+        self.ssh_x_server = ssh_x_server
+        self.ssh_x_server_connect = ssh_x_server_connect
 
     def is_console(self):
         self.interact.consolemode = True
@@ -707,7 +703,7 @@ class GUITools():
 
     def get_current_window (self):
         out = b''
-        if os.path.isfile(ssh_x_server):
+        if os.path.isfile(self.ssh_x_server):
             out = check_output(['ssh', ssh_x_server_connect, 'env DISPLAY=:0 XAUTHORITY=/home/$USER/.Xauthority xdotool getwindowfocus getwindowname'])
         else:
             out = check_output(["xdotool", "getwindowfocus", "getwindowname"])
@@ -1334,13 +1330,14 @@ class VADAudio(Audio):
                     ring_buffer.clear()
 
 class SpecialCommands():
-    def __init__(self, analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text_default, basefeatures):
+    def __init__(self, analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text_default, basefeatures, assistant_name):
         self.analyzeaudio = analyzeaudio
         self.interact = interact
         self.guitools = guitools
         self.textreplacements = textreplacements
         self.spinner = spinner
         self.basefeatures = basefeatures
+        self.assistant_name = assistant_name
 
         self.spinner_default_write_mode = "Was du jetzt sagst wird aufgeschrieben"
         self.spinner_default_command_mode = "Ich warte auf deinen Befehl"
@@ -1386,13 +1383,13 @@ class SpecialCommands():
         return False
 
     def check_if_assistants_name_has_been_said (self, text):
-        if not self.enabled and assistant_name in text:
+        if not self.enabled and self.assistant_name in text:
             self.enabled = True
             self.last_command_enabled = True
-            if text == assistant_name:
+            if text == self.assistant_name:
                 self.interact.talk("Ja?")
-            text = text.replace(assistant_name + " ", "")
-            text = text.replace(assistant_name, "")
+            text = text.replace(self.assistant_name + " ", "")
+            text = text.replace(self.assistant_name, "")
             self.set_spinner_text(self.spinner_default_command_mode)
             self.assistant_name_said_time = self.basefeatures.get_unixtime()
         return text
@@ -1503,6 +1500,16 @@ def main(ARGS):
         ARGS.model = os.path.join(model_dir, 'output_graph.pb')
         ARGS.scorer = os.path.join(model_dir, ARGS.scorer)
 
+    home = str(Path.home())
+    assistant_name_file = home + "/.assistant_name"
+    default_city_file = home + "/.default_city"
+    ssh_x_server = home + "/.ssh_x_server"
+    yellow_text("Add " + ssh_x_server + " file with login credentials if you want to access X11 related data from another computer (like 'user@ip'). Don't forget to make ssh passwordless then!")
+    ssh_x_server_connect = read_first_line_of_file_if_exists(ssh_x_server, "ssh server", getpass.getuser() + "@localhost")
+
+    assistant_name = read_first_line_of_file_if_exists(assistant_name_file, "Assistentenname", "juli")
+    default_city = read_first_line_of_file_if_exists(default_city_file, "Default-City", "Dresden")
+
     print('Initialisiere Modell...')
     green_text("Sage " + assistant_name + " um den Assistenten zu aktivieren")
     logging.info("ARGS.model: %s", ARGS.model)
@@ -1521,7 +1528,7 @@ def main(ARGS):
     controlkeyboard = ControlKeyboard()
     interact = Interaction(vad_audio, controlkeyboard, basefeatures)
     textreplacements = TextReplacements()
-    guitools = GUITools(interact, controlkeyboard, basefeatures)
+    guitools = GUITools(interact, controlkeyboard, basefeatures, ssh_x_server, ssh_x_server_connect)
     features = Features(interact, controlkeyboard, textreplacements, guitools, basefeatures)
     routines = Routines(guitools, interact, features, default_city)
     analyzeaudio = AnalyzeAudio(guitools, interact, features, default_city, routines)
@@ -1538,7 +1545,7 @@ def main(ARGS):
     spinner = None
     spinner_text = "Sage " + assistant_name + " um Befehle zu erteilen"
     spinner = Halo(text=spinner_text, spinner='dots')
-    specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text, basefeatures)
+    specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text, basefeatures, assistant_name)
     stream_context = model.createStream()
 
     vad_audio.set_specialcommands(specialcommands)
