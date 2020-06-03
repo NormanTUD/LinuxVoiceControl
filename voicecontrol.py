@@ -1276,6 +1276,10 @@ class VADAudio(Audio):
     def __init__(self, aggressiveness=3, device=None, input_rate=None, file=None):
         super().__init__(device=device, input_rate=input_rate, file=file)
         self.vad = webrtcvad.Vad(aggressiveness)
+        self.specialcommands = None
+
+    def set_specialcommands (self, specialcommands):
+        self.specialcommands = specialcommands
 
     def frame_generator(self):
         """Generator that yields all audio frames from microphone."""
@@ -1295,12 +1299,17 @@ class VADAudio(Audio):
         """
 
 
-        if frames is None: frames = self.frame_generator()
+        if frames is None:
+            frames = self.frame_generator()
         num_padding_frames = padding_ms // self.frame_duration_ms
         ring_buffer = collections.deque(maxlen=num_padding_frames)
         triggered = False
 
         for frame in frames:
+            if self.specialcommands is None:
+                print("ERROR: SpecialCommands not set")
+            else:
+                self.specialcommands.assistant_name_timeout()
             if len(frame) < 640:
                 return
 
@@ -1359,6 +1368,14 @@ class SpecialCommands():
         else:
             return 0
 
+    def assistant_name_timeout(self):
+        if self.enabled and not self.start_writing:
+            assistant_name_seconds_ago = self.basefeatures.get_unixtime() - self.get_assistant_name_said_time()
+            if not assistant_name_seconds_ago < self.timeout:
+                self.enabled = False
+                self.interact.play_sound_not_ok()
+                self.set_spinner_text(self.spinner_text_default)
+
     def set_spinner_text (self, text):
         self.last_spinner_text_changed = self.basefeatures.get_unixtime()
         self.spinner_text = text
@@ -1412,13 +1429,6 @@ class SpecialCommands():
     def while_loop_function (self, text):
         text = " ".join(text.split())
 
-        if self.enabled:
-            assistant_name_seconds_ago = self.basefeatures.get_unixtime() - self.get_assistant_name_said_time()
-            if not assistant_name_seconds_ago < self.timeout:
-                self.enabled = False
-                red_text("Habe etwas gehört, aber der Timeout ist abgelaufen")
-                self.set_spinner_text(self.spinner_text_default)
-
         if not text == "":
             green_text("Recognized: >>>%s<<<" % text)
 
@@ -1435,7 +1445,7 @@ class SpecialCommands():
                     self.done_something = self.analyzeaudio.do_what_i_just_said(text)
                 elif self.enabled and not self.start_writing:
                     self.enabled = False
-                    red_text("Habe etwas gehört, aber der Timeout ist abgelaufen")
+                    self.interact.play_sound_not_ok()
                     self.set_spinner_text(self.spinner_text_default)
 
             if self.done_something and not self.last_command_enabled:
@@ -1532,16 +1542,19 @@ def main(ARGS):
     specialcommands = SpecialCommands(analyzeaudio, interact, guitools, textreplacements, spinner, spinner_text, basefeatures)
     stream_context = model.createStream()
 
+    vad_audio.set_specialcommands(specialcommands)
+
     wav_data = bytearray()
 
     for frame in frames:
+
+
         if frame is not None:
             if spinner:
                 spinner.text = specialcommands.get_spinner_text()
                 spinner.start()
             logging.debug("streaming frame")
             stream_context.feedAudioContent(np.frombuffer(frame, np.int16))
-            specialcommands.while_loop_function("")
             if ARGS.savewav:
                 wav_data.extend(frame)
         else:
