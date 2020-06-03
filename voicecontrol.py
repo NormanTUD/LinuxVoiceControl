@@ -1133,12 +1133,12 @@ class AnalyzeAudio ():
             "^(?:(?:er\s*stelle|generieren?)\s*)?\s*(?:ein\s*)?passwor[td]$": {
                 "fn": "self.features.create_password",
                 "help": "Erstelle ein zufälliges Passwort",
-                "say": "Erstelle Passwort"
+                "say": ["Erstelle Passwort"]
             },
             "laut\s*st.*rke": {
                 "fn": "self.features.say_current_sound_volume",
                 "help": "Sagt die aktuelle Lautstärke",
-                "say": "Wie ist die aktuelle Lautstärke?"
+                "say": ["Wie ist die aktuelle Lautstärke?"]
             }
         }
 
