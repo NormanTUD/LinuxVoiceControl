@@ -8,7 +8,7 @@ TODO:
 """
 
 import psutil
-import time, logging
+import logging
 from datetime import datetime
 import threading, collections, queue, os, os.path
 import deepspeech
@@ -35,7 +35,7 @@ import zahlwort2num as w2n
 import urllib.parse
 import json
 import wikipediaapi
-from datetime import date, datetime, time
+from datetime import date, datetime
 from babel.dates import format_date, format_datetime, format_time
 import string
 from pathlib import Path
@@ -693,11 +693,9 @@ class ControlKeyboard():
         pyautogui.hotkey(*argv)
 
 class GUITools():
-    def __init__ (self, interact, controlkeyboard, basefeatures):
+    def __init__ (self, interact):
         self.interact = interact
-        self.controlkeyboard = controlkeyboard
         self.consolemode = False
-        self.basefeatures = basefeatures
 
     def is_console(self):
         self.interact.consolemode = True
@@ -708,37 +706,37 @@ class GUITools():
         self.consolemode = False
 
     def start_browser(self):
-        self.basefeatures.run_system_command("firefox")
+        self.interact.basefeatures.run_system_command("firefox")
 
     def toggle_volume(self):
         self.interact.talk("OK")
         command = "amixer set Master toggle"
         blue_text(command)
-        self.basefeatures.run_system_command(command)
+        self.interact.basefeatures.run_system_command(command)
 
     def volume_up (self):
-        self.controlkeyboard.hotkey('volumeup')
+        self.interact.controlkeyboard.hotkey('volumeup')
 
     def volume_down (self):
-        self.controlkeyboard.hotkey('volumedown')
+        self.interact.controlkeyboard.hotkey('volumedown')
 
     def say_current_window(self):
         self.interact.talk(self.get_current_window())
 
     def switch_window (self):
-        self.controlkeyboard.hotkey('alt', 'tab')
+        self.interact.controlkeyboard.hotkey('alt', 'tab')
         time.sleep(1)
         self.say_current_window()
 
     def next_tab (self):
-        self.controlkeyboard.hotkey('ctrl', 'tab')
+        self.interact.controlkeyboard.hotkey('ctrl', 'tab')
         time.sleep(1)
         self.say_current_window()
 
     def get_current_window (self):
         out = b''
-        if os.path.isfile(self.basefeatures.get_ssh_x_server()):
-            out = check_output(['ssh', self.basefeatures.get_ssh_x_server_connect(), 'env DISPLAY=:0 XAUTHORITY=/home/$USER/.Xauthority xdotool getwindowfocus getwindowname'])
+        if os.path.isfile(self.interact.basefeatures.get_ssh_x_server()):
+            out = check_output(['ssh', self.interact.basefeatures.get_ssh_x_server_connect(), 'env DISPLAY=:0 XAUTHORITY=/home/$USER/.Xauthority xdotool getwindowfocus getwindowname'])
         else:
             out = check_output(["xdotool", "getwindowfocus", "getwindowname"])
         this_str = out.decode("utf-8")
@@ -751,50 +749,50 @@ class GUITools():
             self.interact.talk(wn.wm_name)
 
     def close_tab(self):
-        self.controlkeyboard.hotkey('ctrl', 'w')
+        self.interact.controlkeyboard.hotkey('ctrl', 'w')
 
     def previous_tab(self):
-        self.controlkeyboard.hotkey('ctrl', 'shift', 'tab')
+        self.interact.controlkeyboard.hotkey('ctrl', 'shift', 'tab')
         time.sleep(1)
         self.interact.talk(self.get_current_window())
 
     def mark_and_delete_all(self):
-        self.controlkeyboard.hotkey('ctrl', 'a')
-        self.controlkeyboard.hotkey('del')
+        self.interact.controlkeyboard.hotkey('ctrl', 'a')
+        self.interact.controlkeyboard.hotkey('del')
 
     def repeat (self):
-        self.controlkeyboard.hotkey('ctrl', 'y')
+        self.interact.controlkeyboard.hotkey('ctrl', 'y')
 
     def escape (self):
-        self.controlkeyboard.hotkey('esc')
+        self.interact.controlkeyboard.hotkey('esc')
 
     def new_tab(self):
-        self.controlkeyboard.hotkey('ctrl', 't')
+        self.interact.controlkeyboard.hotkey('ctrl', 't')
 
     def new_window(self):
-        self.controlkeyboard.hotkey('ctrl', 'n')
+        self.interact.controlkeyboard.hotkey('ctrl', 'n')
 
     def close_window(self):
-        self.controlkeyboard.hotkey('alt', 'f4')
+        self.interact.controlkeyboard.hotkey('alt', 'f4')
 
     def copy (self):
-        self.controlkeyboard.hotkey('ctrl', 'c')
+        self.interact.controlkeyboard.hotkey('ctrl', 'c')
 
     def select_all(self):
-        self.controlkeyboard.hotkey('ctrl', 'a')
+        self.interact.controlkeyboard.hotkey('ctrl', 'a')
 
     def undo (self):
-        self.controlkeyboard.hotkey('ctrl', 'z')
+        self.interact.controlkeyboard.hotkey('ctrl', 'z')
 
     def cut(self):
-        self.controlkeyboard.hotkey('ctrl', 'x')
+        self.interact.controlkeyboard.hotkey('ctrl', 'x')
 
     def delete(self):
-        self.controlkeyboard.hotkey('del')
+        self.interact.controlkeyboard.hotkey('del')
 
     def select_current_line(self):
-        self.controlkeyboard.hotkey('home')
-        self.controlkeyboard.hotkey('shift', 'end')
+        self.interact.controlkeyboard.hotkey('home')
+        self.interact.controlkeyboard.hotkey('shift', 'end')
 
     def delete_current_line (self):
         self.select_current_line()
@@ -802,18 +800,18 @@ class GUITools():
 
     def paste (self):
         if self.consolemode:
-            self.controlkeyboard.hotkey('ctrl', 'shift', 'v')
+            self.interact.controlkeyboard.hotkey('ctrl', 'shift', 'v')
         else:
-            self.controlkeyboard.hotkey('ctrl', 'v')
+            self.interact.controlkeyboard.hotkey('ctrl', 'v')
 
     def delete_last_word(self):
-        self.controlkeyboard.hotkey('ctrl', 'backspace')
+        self.interact.controlkeyboard.hotkey('ctrl', 'backspace')
 
     def press_enter(self):
-        self.controlkeyboard.hotkey('enter')
+        self.interact.controlkeyboard.hotkey('enter')
 
     def press_space(self):
-        self.controlkeyboard.hotkey('space')
+        self.interact.controlkeyboard.hotkey('space')
 
 class Routines():
     def __init__ (self, guitools, interact, features):
@@ -1548,9 +1546,9 @@ def main(ARGS):
     basefeatures = BaseFeatures()
 
     controlkeyboard = ControlKeyboard()
-    interact = Interaction(vad_audio, controlkeyboard, basefeatures)
     textreplacements = TextReplacements()
-    guitools = GUITools(interact, controlkeyboard, basefeatures)
+    interact = Interaction(vad_audio, controlkeyboard, basefeatures)
+    guitools = GUITools(interact)
     features = Features(interact, controlkeyboard, textreplacements, guitools, basefeatures)
     routines = Routines(guitools, interact, features)
     analyzeaudio = AnalyzeAudio(guitools, interact, features, routines)
