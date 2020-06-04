@@ -220,11 +220,11 @@ class Features():
         self.textreplacements = textreplacements
         self.guitools = guitools
         self.radio_streams = {
-            "(?:radio )?eins": {
+            "(?:radio )?eine?s": {
                 "link": "https://www.radioeins.de/live.m3u",
                 "name": "Radio Eins"
             },
-            "sachsen( radio)?": {
+            "sachsen(\s*radio)?": {
                 "link": "http://avw.mdr.de/streams/284280-0_mp3_high.m3u",
                 "name": "Sachsenradio"
             },
