@@ -17,7 +17,7 @@ import pyaudio
 import wave
 import webrtcvad
 from halo import Halo
-from scipy import signal
+import scipy
 import sys
 import pyautogui 
 import pyperclip
@@ -43,6 +43,24 @@ import getpass
 import tempfile
 from datetime import datetime
 import calendar
+import signal
+
+
+def signal_handler(sig, frame):
+    this_pid = os.getpid()
+    parent = psutil.Process(this_pid)
+    this_children = parent.children(recursive=True)
+    if len(this_children):
+        for child in this_children:
+            if not child.pid == this_pid:
+                try:
+                    child.kill()
+                except Exception as e:
+                    print(str(e))
+    else:
+        sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 def green_text(string):
     print(str(fg('white')) + str(bg('green')) + str(string) + str(attr('reset')))
@@ -1099,7 +1117,7 @@ class AnalyzeAudio ():
                 "help": "Stoppe das aktuell spielende Radio",
                 "say": ["Stoppe Radio", "Radio stoppen", "Radio beenden", "Beende Radio"]
             },
-            "^(?:(?:v|sp)iel(?:e?r?)?|[mn]ach|star?te) radio (.*)(\s+a[bn])?$": {
+            "^(?:(?:v|sp)iel(?:e?r?)?|[mn]ach|s?tar?te) radio (.*)(\s+a[bn])?$": {
                 "fn": "self.features.play_radio",
                 "param": "regex, text",
                 "help": "Startet einen Radiosender. Verfügbare Namen für Radiosender: " + ', '.join(self.features.get_available_radio_names()),
@@ -1263,7 +1281,7 @@ class Audio(object):
         """
         data16 = np.fromstring(string=data, dtype=np.int16)
         resample_size = int(len(data16) / self.input_rate * self.RATE_PROCESS)
-        resample = signal.resample(data16, resample_size)
+        resample = scipy.signal.resample(data16, resample_size)
         resample16 = np.array(resample, dtype=np.int16)
         return resample16.tostring()
 
