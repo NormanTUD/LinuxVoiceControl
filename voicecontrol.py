@@ -675,10 +675,10 @@ class Interaction():
         self.talk("Ja, ich höre dich")
 
     def play_sound_ok(self):
-        self.play_sound("bleep.wav")
+        self.play_sound(os.path.dirname(os.path.realpath(__file__)) + "/bleep.wav")
 
     def play_sound_not_ok(self):
-        self.play_sound("line_end.wav")
+        self.play_sound(os.path.dirname(os.path.realpath(__file__)) + "/line_end.wav")
 
     def play_sound (self, path):
         self.vad_audio.stream.stop_stream()
