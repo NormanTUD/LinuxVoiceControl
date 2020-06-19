@@ -19,13 +19,16 @@ import webrtcvad
 from halo import Halo
 import scipy
 import sys
-import pyautogui 
-import pyperclip
+try:
+    import pyautogui 
+    import pyperclip
+    import wmctrl
+except Exception as e:
+    print(str(e))
 from subprocess import check_output
 import time
 from urllib.request import urlopen
 import random
-import wmctrl
 import argparse
 import os.path
 import re
