@@ -72,7 +72,6 @@ def green_text(string):
 def red_text(string):
     print(str(fg('white')) + str(bg('red')) + str(string) + str(attr('reset')))
 
-
 def yellow_text(string):
     print(str(fg('white')) + str(bg('yellow')) + str(string) + str(attr('reset')))
 
@@ -462,6 +461,7 @@ class Features():
         self.controlkeyboard.hotkey('ctrl', 'c')
         self.controlkeyboard.hotkey('ctrl', 'a')
         self.controlkeyboard.hotkey('ctrl', 'c')
+        self.controlkeyboard.hotkey('right')
 
         self.speak_system_command('xsel --clipboard | tr "\n" " "')
 
@@ -1080,7 +1080,7 @@ class AnalyzeAudio ():
                 "help": "Starte einen Texteditor",
                 "say": ["Starte einen Editor"]
             },
-            ".*ende.*(?:dich|selbst).*": {
+            ".*(?:(?:ende.*(?:dich|selbst))|(?:suizid)).*": {
                 "fn": "self.features.suicide",
                 "help": "Beendet den Sprachassistenten",
                 "say": ["Beende dich selbst"]
@@ -1406,7 +1406,7 @@ class SpecialCommands():
         self.done_something = False
         self.assistant_name_said_time = None
 
-        self.timeout = 10
+        self.timeout = 15
 
     def get_assistant_name_said_time(self):
         if self.assistant_name_said_time is not None:
@@ -1453,6 +1453,7 @@ class SpecialCommands():
             self.interact.play_sound_not_ok()
             self.start_writing = False
             self.done_something = False
+            self.enabled = False
         elif text:
             if self.is_formel:
                 text = self.textreplacements.replace_in_formula_mode(text)
@@ -1476,7 +1477,7 @@ class SpecialCommands():
         text = " ".join(text.split())
 
         if not text == "":
-            green_text("Recognized: >>>%s<<<" % text)
+            green_text("Recognized: %s" % text)
 
             text = self.check_if_assistants_name_has_been_said(text)
 
@@ -1506,7 +1507,7 @@ class SpecialCommands():
                     self.interact.play_sound_ok()
                     self.done_something = True
                     self.set_spinner_text(self.spinner_default_equation_mode)
-                elif m.match("konsole.*\s+aktivier"):
+                elif m.match("konsole.*\s+aktivier") or m.match("konsolen\s*modus"):
                     self.guitools.is_console()
                     self.interact.talk("Konsolenmodus aktiviert")
                     self.done_something = True
@@ -1549,8 +1550,6 @@ def main(ARGS):
         ARGS.model = os.path.join(model_dir, 'output_graph.pb')
         ARGS.scorer = os.path.join(model_dir, ARGS.scorer)
 
-
-
     print('Initialisiere Modell...')
     logging.info("ARGS.model: %s", ARGS.model)
     model = deepspeech.Model(ARGS.model)
@@ -1578,7 +1577,7 @@ def main(ARGS):
         analyzeaudio.show_available_commands()
         sys.exit(0)
 
-    interact.talk("Mein Name ist " + basefeatures.get_assistant_name() + " und ich stehe bereit")
+    interact.talk("Mein Name ist " + basefeatures.get_assistant_name())
     green_text("Sage " + basefeatures.get_assistant_name() + " um den Assistenten zu aktivieren")
 
     print("Sage 'mitschreiben', damit mitgeschrieben wird")
