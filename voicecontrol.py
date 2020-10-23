@@ -332,7 +332,7 @@ class Features():
             self.interact.talk("Ich spiele " + str(radio_name) + " ab")
             newpid = os.fork()
             if newpid == 0:
-                self.basefeatures.run_system_command("play " + str(radio_stream))
+                self.basefeatures.run_system_command("cvlc " + str(radio_stream))
             else:
                 pids = (os.getpid(), newpid)
                 print("Forked process, parent: %d, child: %d\n" % pids)
@@ -510,6 +510,23 @@ class Features():
 
         self.interact.talk(self.basefeatures.random_element_from_array(array))
 
+    def hello (self):
+        self.interact.talk("Hallo, " + os.getenv("USER"))
+
+
+    def tell_day (self):
+        from datetime import date
+        heute = date.today()
+        string_day = ("Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag")[heute.weekday()]
+        self.interact.talk("Heute ist " + string_day)
+
+    def tell_time (self):
+        now = datetime.now()
+        current_hour = now.strftime("%H")
+        current_minute = now.strftime("%M")
+        string_time = str(current_hour) + " Uhr " + str(current_minute)
+        self.interact.talk(string_time)
+
     def tell_joke(self):
         array = [
             "Was ist weiß und steht hinter einem Baum? Eine scheue Milch",
@@ -609,9 +626,10 @@ class TextReplacements():
         text = text.replace("vierzehn", "14")
         text = text.replace("fünfzehn", "15")
         text = text.replace("sechszehn", "16")
-        text = text.replace("siebzehn", "16")
-        text = text.replace("achtzehn", "16")
-        text = text.replace("neunzehn", "16")
+        text = text.replace("siebzehn", "17")
+        text = text.replace("achtzehn", "18")
+        text = text.replace("neunzehn", "19")
+        text = text.replace("zwanzig", "20")
 
         text = text.replace("komma", ",")
         text = text.replace("plus", "+")
@@ -1100,7 +1118,22 @@ class AnalyzeAudio ():
                 "help": "Macht die letzte Aktion rückgängig",
                 "say": ["Rückgängig"]
             },
-            ".*ein(?:en)?.*witz": {
+            "(alle\s)|(h[ea]ll?o).*": {
+                "fn": "self.features.hello",
+                "help": "Begrüßt dich",
+                "say": ["Hallo Juli"]
+            },
+            ".*((was.*)|(welche)).*tag.*": {
+                "fn": "self.features.tell_day",
+                "help": "Sagt, welcher Tag ist",
+                "say": ["Was für ein Tag ist Heute?", "Welcher Tag ist heute?"]
+            },
+            ".*spät.*ist.*": {
+                "fn": "self.features.tell_time",
+                "help": "Sagt die Uhrzeit",
+                "say": ["Wie spät ist es?"]
+            },
+            ".*ein(?:e[mn])?.*witz": {
                 "fn": "self.features.tell_joke",
                 "help": "Erzählt einen Witz",
                 "say": ["Erzähl mir einen Witz", "Erzähl mir einen weiteren Witz"]
